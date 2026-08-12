@@ -1755,108 +1755,31 @@
             <div class="subtitle">Conta Corrente — Banco do Brasil · Ag. 0042-1</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost">🔄 Atualizar extrato</button>
-            <button class="btn can-create">↑ Importar extrato</button>
+            <button class="btn ghost" onclick="carregarConciliacao()">🔄 Atualizar extrato</button>
+            <button class="btn can-approve" onclick="adicionarItemExtrato()">+ Lançar item do extrato</button>
           </div>
         </div>
 
         <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
           <div class="kpi-card" style="--accent:#D98A1E">
             <div class="kpi-label">Pendentes</div>
-            <div class="kpi-value">3</div>
+            <div class="kpi-value" id="conc-kpi-pendentes">—</div>
             <div class="kpi-delta neutral">Itens aguardando</div>
           </div>
           <div class="kpi-card" style="--accent:#1F9D6B">
             <div class="kpi-label">Conciliados (mês)</div>
-            <div class="kpi-value">47</div>
-            <div class="kpi-delta up">↑ 94% taxa de conciliação</div>
+            <div class="kpi-value" id="conc-kpi-mes">—</div>
+            <div class="kpi-delta neutral" id="conc-kpi-taxa"></div>
           </div>
           <div class="kpi-card" style="--accent:#0C7488">
             <div class="kpi-label">Saldo extrato</div>
-            <div class="kpi-value">R$ 482.310</div>
-            <div class="kpi-delta neutral">Saldo do banco</div>
+            <div class="kpi-value" id="conc-kpi-saldo">—</div>
+            <div class="kpi-delta neutral">Saldo dos itens lançados</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="conc-section-title">⏳ Pendentes de conciliação (3)</div>
-
-          <div class="conc-item pending">
-            <div class="conc-main">
-              <div class="conc-desc">TED RECEBIDA — GRUPO NOVA ERA LTDA</div>
-              <div class="conc-meta">18/08/2026 · sem lançamento correspondente encontrado no sistema</div>
-            </div>
-            <div class="conc-right">
-              <div class="conc-value pos">+ R$ 21.300,00</div>
-              <div class="conc-actions">
-                <button class="action-btn approve can-approve" onclick="conciliarItem(this)">✓ Conciliar</button>
-                <button class="action-btn view">Ignorar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="conc-item pending">
-            <div class="conc-main">
-              <div class="conc-desc">PIX ENVIADO — TECHSOFT LICENCIAMENTO</div>
-              <div class="conc-meta">18/08/2026 · possível match: Fatura TechSoft (18/08) — R$ 3.960,00</div>
-            </div>
-            <div class="conc-right">
-              <div class="conc-value neg">− R$ 3.960,00</div>
-              <div class="conc-actions">
-                <button class="action-btn approve can-approve" onclick="conciliarItem(this)">✓ Conciliar</button>
-                <button class="action-btn view">Ignorar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="conc-item pending">
-            <div class="conc-main">
-              <div class="conc-desc">TARIFA BANCÁRIA — PACOTE DE SERVIÇOS</div>
-              <div class="conc-meta">17/08/2026 · sem categoria definida</div>
-            </div>
-            <div class="conc-right">
-              <div class="conc-value neg">− R$ 89,90</div>
-              <div class="conc-actions">
-                <button class="action-btn approve can-approve" onclick="conciliarItem(this)">✓ Conciliar</button>
-                <button class="action-btn view">Ignorar</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="conc-section-title" style="margin-top:24px">✅ Conciliados recentemente</div>
-
-          <div class="conc-item matched">
-            <div class="conc-main">
-              <div class="conc-desc">TED ENVIADA — TRANSPORTADORA RIO VERDE</div>
-              <div class="conc-meta">15/08/2026 · conciliado com lançamento de contas a pagar · NF 9821</div>
-            </div>
-            <div class="conc-right">
-              <div class="conc-value neg">− R$ 2.180,00</div>
-              <span class="status-pill status-pago">Conciliado</span>
-            </div>
-          </div>
-
-          <div class="conc-item matched">
-            <div class="conc-main">
-              <div class="conc-desc">BOLETO RECEBIDO — MERCADO CENTRAL S.A.</div>
-              <div class="conc-meta">05/08/2026 · conciliado com lançamento de contas a receber · Fatura #2175</div>
-            </div>
-            <div class="conc-right">
-              <div class="conc-value pos">+ R$ 4.120,00</div>
-              <span class="status-pill status-recebido">Conciliado</span>
-            </div>
-          </div>
-
-          <div class="conc-item matched">
-            <div class="conc-main">
-              <div class="conc-desc">PIX RECEBIDO — CONSTRUTORA PRIMAVERA</div>
-              <div class="conc-meta">12/08/2026 · conciliado automaticamente · Fatura #2198</div>
-            </div>
-            <div class="conc-right">
-              <div class="conc-value pos">+ R$ 9.800,00</div>
-              <span class="status-pill status-recebido">Conciliado</span>
-            </div>
-          </div>
+        <div class="card" id="conciliacao-container">
+          <div style="text-align:center;padding:24px;color:#94A3B8">Carregando...</div>
         </div>
       </div>
 
@@ -2207,6 +2130,7 @@ function navigate(key) {
   if (key === 'pagar') carregarContasPagar();
   if (key === 'receber') carregarContasReceber();
   if (key === 'fluxo') carregarFluxoCaixa();
+  if (key === 'conciliacao') carregarConciliacao();
 }
 
 // Retorna o empresa_id atualmente selecionado no seletor do sidebar
@@ -2478,6 +2402,149 @@ async function carregarFluxoCaixa() {
   buildFlowChartReal('flow-chart-big', 30, 160, lancs);
 }
 
+async function carregarConciliacao() {
+  const empresaId = empresaAtualId();
+  const container = document.getElementById('conciliacao-container');
+  if (!empresaId) return;
+
+  container.innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8">Carregando...</div>';
+
+  const { data: itens, error } = await sb
+    .from('conciliacao_bancaria')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .order('data_movimento', { ascending: false });
+
+  if (error) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--red)">Erro ao carregar conciliação</div>';
+    showToast('Erro ao carregar conciliação: ' + error.message, 'error');
+    return;
+  }
+
+  const pendentes = itens.filter(i => i.status === 'pendente');
+  const conciliados = itens.filter(i => i.status === 'conciliado');
+
+  // KPIs
+  const hoje = new Date();
+  const conciliadosMes = conciliados.filter(i => {
+    if (!i.conciliado_em) return false;
+    const data = new Date(i.conciliado_em);
+    return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear();
+  });
+  const taxaConciliacao = itens.length > 0 ? (conciliados.length / itens.length * 100) : 0;
+  const saldoExtrato = itens.reduce((s, i) => s + Number(i.valor), 0);
+
+  document.getElementById('conc-kpi-pendentes').textContent = pendentes.length;
+  document.getElementById('conc-kpi-mes').textContent = conciliadosMes.length;
+  document.getElementById('conc-kpi-taxa').textContent = `${taxaConciliacao.toFixed(0)}% taxa de conciliação`;
+  document.getElementById('conc-kpi-saldo').textContent = formatarMoeda(saldoExtrato);
+
+  const renderItem = (item, isPending) => {
+    const valorFmt = formatarMoeda(Math.abs(item.valor));
+    const sinal = item.valor >= 0 ? '+' : '−';
+    const classeValor = item.valor >= 0 ? 'pos' : 'neg';
+    const dataFmt = formatarData(item.data_movimento);
+
+    if (isPending) {
+      return `
+        <div class="conc-item pending">
+          <div class="conc-main">
+            <div class="conc-desc">${item.descricao_extrato}</div>
+            <div class="conc-meta">${dataFmt} · aguardando conciliação</div>
+          </div>
+          <div class="conc-right">
+            <div class="conc-value ${classeValor}">${sinal} ${valorFmt}</div>
+            <div class="conc-actions">
+              <button class="action-btn approve can-approve" onclick="conciliarItemReal('${item.id}')">✓ Conciliar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    return `
+      <div class="conc-item matched">
+        <div class="conc-main">
+          <div class="conc-desc">${item.descricao_extrato}</div>
+          <div class="conc-meta">${dataFmt} · conciliado</div>
+        </div>
+        <div class="conc-right">
+          <div class="conc-value ${classeValor}">${sinal} ${valorFmt}</div>
+          <span class="status-pill status-pago">Conciliado</span>
+        </div>
+      </div>
+    `;
+  };
+
+  let html = '';
+  html += `<div class="conc-section-title">⏳ Pendentes de conciliação (${pendentes.length})</div>`;
+  html += pendentes.length
+    ? pendentes.map(i => renderItem(i, true)).join('')
+    : '<div style="padding:16px;color:#94A3B8">Nenhum item pendente</div>';
+
+  html += `<div class="conc-section-title" style="margin-top:24px">✅ Conciliados recentemente</div>`;
+  html += conciliados.length
+    ? conciliados.slice(0, 10).map(i => renderItem(i, false)).join('')
+    : '<div style="padding:16px;color:#94A3B8">Nenhum item conciliado ainda</div>';
+
+  container.innerHTML = html;
+
+  if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+async function conciliarItemReal(itemId) {
+  const { error } = await sb
+    .from('conciliacao_bancaria')
+    .update({
+      status: 'conciliado',
+      conciliado_por: currentUser.id,
+      conciliado_em: new Date().toISOString()
+    })
+    .eq('id', itemId);
+
+  if (error) {
+    showToast('Erro ao conciliar: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Item conciliado com sucesso!', 'info');
+  carregarConciliacao();
+}
+
+// Cadastro manual de item do extrato (versão simples via prompt,
+// enquanto não temos um formulário dedicado)
+async function adicionarItemExtrato() {
+  const descricao = prompt('Descrição do lançamento no extrato:');
+  if (!descricao) return;
+
+  const valorStr = prompt('Valor (use negativo para saída, ex: -150.50 ou 300):');
+  if (!valorStr) return;
+  const valor = parseFloat(valorStr.replace(',', '.'));
+  if (isNaN(valor)) {
+    showToast('Valor inválido', 'error');
+    return;
+  }
+
+  const dataStr = prompt('Data do movimento (AAAA-MM-DD):', new Date().toISOString().slice(0, 10));
+  if (!dataStr) return;
+
+  const empresaId = empresaAtualId();
+  const { error } = await sb.from('conciliacao_bancaria').insert({
+    empresa_id: empresaId,
+    descricao_extrato: descricao,
+    valor: valor,
+    data_movimento: dataStr,
+    status: 'pendente'
+  });
+
+  if (error) {
+    showToast('Erro ao lançar item: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Item lançado com sucesso!', 'info');
+  carregarConciliacao();
+}
+
 // ============================================
 // CHARTS
 // ============================================
@@ -2704,6 +2771,7 @@ function changeEmpresa(val) {
   if (screenAtiva && screenAtiva.id === 'screen-pagar') carregarContasPagar();
   if (screenAtiva && screenAtiva.id === 'screen-receber') carregarContasReceber();
   if (screenAtiva && screenAtiva.id === 'screen-fluxo') carregarFluxoCaixa();
+  if (screenAtiva && screenAtiva.id === 'screen-conciliacao') carregarConciliacao();
 }
 
 // ============================================
