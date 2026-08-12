@@ -2773,6 +2773,10 @@ function toggleCampoEmpresaUsuario() {
 async function carregarUsuarios() {
   const tbody = document.querySelector('#usuarios-table tbody');
 
+  // Garante que o seletor de empresas do formulário está populado,
+  // mesmo que o admin não tenha visitado a tela "Empresas" antes
+  await carregarEmpresas();
+
   const { data: perfisData, error } = await sb
     .from('perfis')
     .select('*, empresas!empresa_id(nome)')
