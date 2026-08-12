@@ -1039,6 +1039,7 @@
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast.success::before { content: '✓'; width: 20px; height: 20px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
   .toast.info::before { content: 'ℹ'; width: 20px; height: 20px; background: var(--teal); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .toast.error::before { content: '✕'; width: 20px; height: 20px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
 
   /* ============================
      EMPTY STATE
@@ -2002,48 +2003,41 @@
 <div class="toast" id="toast"></div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ============================================
-// USUÁRIOS DEMO
+// CONEXÃO SUPABASE
+// ============================================
+const SUPABASE_URL = 'https://uzjafpxkxqsijtlijpcx.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_GCq4hzPAvDnIMVMJpEPL4Q_mtQ6MrWC';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================
+// USUÁRIOS DE TESTE (login rápido em dev)
+// Credenciais reais criadas no passo 2 — troque/remova antes de produção
 // ============================================
 const DEMO_USERS = {
-  admin: {
-    name: 'Ana Lucralize',
-    initials: 'AL',
-    company: 'Lucralize',
-    role: 'admin_lucralize',
-    roleLabel: 'Admin',
-    email: 'ana@lucralize.com.br',
-    multiEmpresa: true,
-  },
-  equipe: {
-    name: 'Carolina',
-    initials: 'CG',
-    company: 'Lucralize',
-    role: 'equipe_lucralize',
-    roleLabel: 'Equipe',
-    email: 'carolina@lucralize.com.br',
-    multiEmpresa: true,
-  },
-  cliente_lancamento: {
-    name: 'Paulo Santana',
-    initials: 'PS',
-    company: 'Santana Indústrias',
-    role: 'cliente_lancamento',
-    roleLabel: 'Cliente',
-    email: 'paulo@santana.com.br',
-    multiEmpresa: false,
-  },
-  cliente_viewer: {
-    name: 'Marina Fitness',
-    initials: 'MF',
-    company: 'Pro Fitness',
-    role: 'cliente_viewer',
-    roleLabel: 'Leitura',
-    email: 'marina@profitness.com.br',
-    multiEmpresa: false,
-  },
+  admin:              { email: 'admin@lucralize.com.br',         password: 'TrocarSenha123!' },
+  equipe:             { email: 'equipe@lucralize.com.br',        password: 'TrocarSenha123!' },
+  cliente_lancamento: { email: 'lancamento@empresateste.com.br', password: 'TrocarSenha123!' },
+  cliente_viewer:     { email: 'viewer@empresateste.com.br',     password: 'TrocarSenha123!' },
 };
+
+function roleLabel(role) {
+  return {
+    admin_lucralize: 'Admin',
+    equipe_lucralize: 'Equipe',
+    cliente_lancamento: 'Cliente',
+    cliente_viewer: 'Leitura',
+  }[role] || role;
+}
+
+function initialsFrom(nome) {
+  const partes = nome.trim().split(/\s+/);
+  const first = partes[0]?.[0] || '';
+  const last = partes.length > 1 ? partes[partes.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
 
 let currentUser = null;
 
@@ -2051,26 +2045,83 @@ let currentUser = null;
 // AUTH
 // ============================================
 function loginAs(role) {
-  const user = DEMO_USERS[role];
-  document.getElementById('login-email').value = user.email;
-  performLogin(user);
+  const demo = DEMO_USERS[role];
+  document.getElementById('login-email').value = demo.email;
+  document.getElementById('login-password').value = demo.password;
+  document.getElementById('login-form').requestSubmit();
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('login-email').value;
-  let user = Object.values(DEMO_USERS).find(u => u.email === email);
-  if (!user) user = DEMO_USERS['equipe'];
-  performLogin(user);
+  const password = document.getElementById('login-password').value;
+  const btn = e.target.querySelector('.login-btn');
+  const btnTextoOriginal = btn.textContent;
+  btn.textContent = 'Entrando...';
+  btn.disabled = true;
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    showToast('Erro ao entrar: ' + error.message, 'error');
+    btn.textContent = btnTextoOriginal;
+    btn.disabled = false;
+    return;
+  }
+
+  await carregarPerfilEEntrar(data.user.id);
+  btn.textContent = btnTextoOriginal;
+  btn.disabled = false;
 }
 
-function performLogin(user) {
-  currentUser = user;
+// Busca o perfil (role, nome, empresa) na tabela `perfis` e monta a sessão
+async function carregarPerfilEEntrar(userId) {
+  const { data: perfil, error } = await sb
+    .from('perfis')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error || !perfil) {
+    showToast('Não foi possível carregar seu perfil. Contate o suporte.', 'error');
+    await sb.auth.signOut();
+    return;
+  }
+
+  let empresaNome = '—';
+  let empresasDisponiveis = [];
+
+  if (perfil.role === 'admin_lucralize' || perfil.role === 'equipe_lucralize') {
+    // Lucralize vê todas as empresas cadastradas
+    const { data: empresas } = await sb.from('empresas').select('id, nome').order('nome');
+    empresasDisponiveis = empresas || [];
+    empresaNome = 'Lucralize';
+  } else if (perfil.empresa_id) {
+    const { data: empresa } = await sb.from('empresas').select('id, nome').eq('id', perfil.empresa_id).single();
+    empresaNome = empresa?.nome || '—';
+  }
+
+  currentUser = {
+    id: perfil.id,
+    name: perfil.nome,
+    initials: initialsFrom(perfil.nome),
+    company: empresaNome,
+    role: perfil.role,
+    roleLabel: roleLabel(perfil.role),
+    empresaId: perfil.empresa_id,
+    multiEmpresa: perfil.multi_empresa || perfil.role === 'admin_lucralize' || perfil.role === 'equipe_lucralize',
+    empresasDisponiveis,
+  };
+
+  renderizarAppLogado();
+}
+
+function renderizarAppLogado() {
+  const user = currentUser;
 
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
 
-  // Update UI with user info
   document.getElementById('user-avatar').textContent = user.initials;
   document.getElementById('user-name').textContent = user.name;
   document.getElementById('user-company').textContent = user.company;
@@ -2082,11 +2133,9 @@ function performLogin(user) {
     sel.innerHTML = `<option>${user.company}</option>`;
     sel.disabled = true;
   } else {
-    sel.innerHTML = `
-      <option>Santana Indústrias Ltda.</option>
-      <option>Pro Fitness (Grupo Winner)</option>
-      <option>PRIS Software S.A.</option>
-    `;
+    sel.innerHTML = user.empresasDisponiveis
+      .map(e => `<option value="${e.id}">${e.nome}</option>`)
+      .join('');
     sel.disabled = false;
   }
 
@@ -2095,11 +2144,20 @@ function performLogin(user) {
   showToast(`Bem-vindo(a), ${user.name}!`, 'info');
 }
 
-function handleLogout() {
+async function handleLogout() {
+  await sb.auth.signOut();
   currentUser = null;
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 }
+
+// Se já existir uma sessão ativa (ex: refresh da página), entra direto
+(async function restaurarSessao() {
+  const { data } = await sb.auth.getSession();
+  if (data.session?.user) {
+    await carregarPerfilEEntrar(data.session.user.id);
+  }
+})();
 
 function applyRolePermissions(role) {
   const canCreate = ['admin_lucralize', 'equipe_lucralize', 'cliente_lancamento'].includes(role);
