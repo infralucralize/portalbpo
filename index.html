@@ -1800,61 +1800,38 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label>Fornecedor</label>
-        <select>
-          <option value="">Selecione um fornecedor</option>
-          <option>Distribuidora Alfa Ltda.</option>
-          <option>Imobiliária Central</option>
-          <option>Fornecedor TechSoft</option>
-          <option>Transportadora Rio Verde</option>
-          <option>Banco Financeiro S.A.</option>
-        </select>
-      </div>
-      <div class="form-group">
         <label>Descrição</label>
-        <input type="text" placeholder="Ex: Compra de insumos — NF 4521">
+        <input type="text" id="pagar-form-descricao" placeholder="Ex: Compra de insumos — NF 4521 (fornecedor: Distribuidora Alfa)">
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>Valor (R$)</label>
-          <input type="number" placeholder="0,00" step="0.01" min="0.01">
+          <input type="number" id="pagar-form-valor" placeholder="0,00" step="0.01" min="0.01">
         </div>
         <div class="form-group">
           <label>Data de vencimento</label>
-          <input type="date">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Categoria</label>
-          <select>
-            <option value="">Selecione</option>
-            <option>Operacional</option>
-            <option>Financeira</option>
-            <option>Investimento</option>
-            <option>Marketing</option>
-            <option>Administrativa</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Forma de pagamento</label>
-          <select>
-            <option>Boleto</option>
-            <option>PIX</option>
-            <option>TED</option>
-            <option>Débito automático</option>
-            <option>Outro</option>
-          </select>
+          <input type="date" id="pagar-form-vencimento">
         </div>
       </div>
       <div class="form-group">
-        <label>Data de emissão</label>
-        <input type="date">
+        <label>Categoria</label>
+        <select id="pagar-form-categoria">
+          <option value="">Selecione</option>
+          <option>Operacional</option>
+          <option>Financeira</option>
+          <option>Investimento</option>
+          <option>Marketing</option>
+          <option>Administrativa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Observações (opcional)</label>
+        <input type="text" id="pagar-form-observacoes" placeholder="Ex: Forma de pagamento, número do boleto, etc.">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeModal('modal-pagar')">Cancelar</button>
-      <button class="btn" onclick="saveModal('modal-pagar', 'Lançamento a pagar criado com sucesso!')">Salvar lançamento</button>
+      <button class="btn" onclick="salvarNovoLancamento('pagar')">Salvar lançamento</button>
     </div>
   </div>
 </div>
@@ -1871,53 +1848,37 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label>Cliente</label>
-        <select>
-          <option value="">Selecione um cliente</option>
-          <option>Comércio Boa Vista Ltda.</option>
-          <option>Indústria Metalfer</option>
-          <option>Grupo Nova Era</option>
-          <option>Mercado Central S.A.</option>
-          <option>Construtora Beta S.A.</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Descrição / Número da fatura</label>
-        <input type="text" placeholder="Ex: Fatura #2220 — serviços prestados">
+        <label>Descrição / Cliente / Nº da fatura</label>
+        <input type="text" id="receber-form-descricao" placeholder="Ex: Fatura #2220 — Comércio Boa Vista Ltda.">
       </div>
       <div class="form-row">
         <div class="form-group">
           <label>Valor (R$)</label>
-          <input type="number" placeholder="0,00" step="0.01" min="0.01">
+          <input type="number" id="receber-form-valor" placeholder="0,00" step="0.01" min="0.01">
         </div>
         <div class="form-group">
           <label>Data de vencimento</label>
-          <input type="date">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Data de emissão</label>
-          <input type="date">
-        </div>
-        <div class="form-group">
-          <label>Número do boleto / fatura</label>
-          <input type="text" placeholder="Ex: 2220">
+          <input type="date" id="receber-form-vencimento">
         </div>
       </div>
       <div class="form-group">
-        <label>Condição de pagamento</label>
-        <select>
-          <option>À vista</option>
-          <option>30 dias</option>
-          <option>30/60 dias</option>
-          <option>30/60/90 dias</option>
+        <label>Categoria (opcional)</label>
+        <select id="receber-form-categoria">
+          <option value="">Selecione</option>
+          <option>Vendas</option>
+          <option>Serviços</option>
+          <option>Recorrente</option>
+          <option>Outros</option>
         </select>
+      </div>
+      <div class="form-group">
+        <label>Observações (opcional)</label>
+        <input type="text" id="receber-form-observacoes" placeholder="Ex: Condição de pagamento, nº do boleto, etc.">
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeModal('modal-receber')">Cancelar</button>
-      <button class="btn" onclick="saveModal('modal-receber', 'Lançamento a receber criado com sucesso!')">Salvar lançamento</button>
+      <button class="btn" onclick="salvarNovoLancamento('receber')">Salvar lançamento</button>
     </div>
   </div>
 </div>
@@ -2543,6 +2504,61 @@ async function adicionarItemExtrato() {
 
   showToast('Item lançado com sucesso!', 'info');
   carregarConciliacao();
+}
+
+async function salvarNovoLancamento(tipo) {
+  const prefixo = tipo; // 'pagar' ou 'receber'
+  const descricao = document.getElementById(`${prefixo}-form-descricao`).value.trim();
+  const valorStr = document.getElementById(`${prefixo}-form-valor`).value;
+  const vencimento = document.getElementById(`${prefixo}-form-vencimento`).value;
+  const categoria = document.getElementById(`${prefixo}-form-categoria`).value || null;
+  const observacoes = document.getElementById(`${prefixo}-form-observacoes`).value.trim() || null;
+
+  if (!descricao || !valorStr || !vencimento) {
+    showToast('Preencha descrição, valor e vencimento.', 'error');
+    return;
+  }
+
+  const valor = parseFloat(valorStr);
+  if (isNaN(valor) || valor <= 0) {
+    showToast('Valor inválido.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  if (!empresaId) {
+    showToast('Selecione uma empresa antes de lançar.', 'error');
+    return;
+  }
+
+  const { error } = await sb.from('lancamentos').insert({
+    empresa_id: empresaId,
+    tipo: tipo,
+    descricao: descricao,
+    valor: valor,
+    vencimento: vencimento,
+    categoria: categoria,
+    observacoes: observacoes,
+    criado_por: currentUser.id
+  });
+
+  if (error) {
+    showToast('Erro ao salvar lançamento: ' + error.message, 'error');
+    return;
+  }
+
+  // Limpa o formulário
+  document.getElementById(`${prefixo}-form-descricao`).value = '';
+  document.getElementById(`${prefixo}-form-valor`).value = '';
+  document.getElementById(`${prefixo}-form-vencimento`).value = '';
+  document.getElementById(`${prefixo}-form-categoria`).value = '';
+  document.getElementById(`${prefixo}-form-observacoes`).value = '';
+
+  closeModal(`modal-${prefixo}`);
+  showToast(`Lançamento a ${tipo === 'pagar' ? 'pagar' : 'receber'} criado com sucesso!`, 'success');
+
+  if (tipo === 'pagar') carregarContasPagar();
+  if (tipo === 'receber') carregarContasReceber();
 }
 
 // ============================================
