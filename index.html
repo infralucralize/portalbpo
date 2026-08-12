@@ -1222,26 +1222,26 @@
           <div class="kpi-card" style="--accent:#0C7488;--icon-bg:rgba(12,116,136,0.08)">
             <div class="kpi-icon">💰</div>
             <div class="kpi-label">Saldo consolidado</div>
-            <div class="kpi-value">R$ 482.310</div>
-            <div class="kpi-delta up">↑ 6,4% vs mês anterior</div>
+            <div class="kpi-value" id="kpi-saldo">—</div>
+            <div class="kpi-delta" id="kpi-saldo-delta"></div>
           </div>
           <div class="kpi-card" style="--accent:#F62642;--icon-bg:rgba(246,38,66,0.07)">
             <div class="kpi-icon">📤</div>
             <div class="kpi-label">A pagar (30 dias)</div>
-            <div class="kpi-value">R$ 128.450</div>
-            <div class="kpi-delta down">↑ 12% vs mês anterior</div>
+            <div class="kpi-value" id="kpi-pagar30">—</div>
+            <div class="kpi-delta" id="kpi-pagar30-delta"></div>
           </div>
           <div class="kpi-card" style="--accent:#1F9D6B;--icon-bg:rgba(31,157,107,0.08)">
             <div class="kpi-icon">📥</div>
             <div class="kpi-label">A receber (30 dias)</div>
-            <div class="kpi-value">R$ 214.900</div>
-            <div class="kpi-delta up">↑ 3,1% vs mês anterior</div>
+            <div class="kpi-value" id="kpi-receber30">—</div>
+            <div class="kpi-delta" id="kpi-receber30-delta"></div>
           </div>
           <div class="kpi-card" style="--accent:#D98A1E;--icon-bg:rgba(217,138,30,0.08)">
             <div class="kpi-icon">⚠️</div>
             <div class="kpi-label">Inadimplência</div>
-            <div class="kpi-value">4,2%</div>
-            <div class="kpi-delta down">↑ 0,8 p.p. vs anterior</div>
+            <div class="kpi-value" id="kpi-inadimplencia">—</div>
+            <div class="kpi-delta" id="kpi-inadimplencia-delta"></div>
           </div>
         </div>
 
@@ -1267,27 +1267,27 @@
           <div class="card" style="margin-bottom:0">
             <div class="card-header">
               <h3>Aging de inadimplência</h3>
-              <span class="card-link">R$ 71.750 total</span>
+              <span class="card-link" id="aging-total">R$ 0 total</span>
             </div>
             <div class="aging-row">
               <div class="aging-label">0–30 dias</div>
-              <div class="aging-track"><div class="aging-fill" style="width:59%;background:#0C7488"></div></div>
-              <div class="aging-value" style="color:#0C7488">R$ 42.100</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-1" style="width:0%;background:#0C7488"></div></div>
+              <div class="aging-value" id="aging-value-1" style="color:#0C7488">R$ 0</div>
             </div>
             <div class="aging-row">
               <div class="aging-label">31–60 dias</div>
-              <div class="aging-track"><div class="aging-fill" style="width:26%;background:#D98A1E"></div></div>
-              <div class="aging-value" style="color:#D98A1E">R$ 18.300</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-2" style="width:0%;background:#D98A1E"></div></div>
+              <div class="aging-value" id="aging-value-2" style="color:#D98A1E">R$ 0</div>
             </div>
             <div class="aging-row">
               <div class="aging-label">61–90 dias</div>
-              <div class="aging-track"><div class="aging-fill" style="width:10%;background:#F62642"></div></div>
-              <div class="aging-value" style="color:#F62642">R$ 7.450</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-3" style="width:0%;background:#F62642"></div></div>
+              <div class="aging-value" id="aging-value-3" style="color:#F62642">R$ 0</div>
             </div>
             <div class="aging-row">
               <div class="aging-label">&gt;90 dias</div>
-              <div class="aging-track"><div class="aging-fill" style="width:5%;background:#8a1a2a"></div></div>
-              <div class="aging-value" style="color:#8a1a2a">R$ 3.900</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-4" style="width:0%;background:#8a1a2a"></div></div>
+              <div class="aging-value" id="aging-value-4" style="color:#8a1a2a">R$ 0</div>
             </div>
           </div>
         </div>
@@ -2141,6 +2141,7 @@ function renderizarAppLogado() {
 
   applyRolePermissions(user.role);
   buildCharts();
+  carregarDashboard();
   showToast(`Bem-vindo(a), ${user.name}!`, 'info');
 }
 
@@ -2202,6 +2203,7 @@ function navigate(key) {
     document.getElementById('screen-subtitle').textContent = screenTitles[key][1];
   }
 
+  if (key === 'dashboard') carregarDashboard();
   if (key === 'pagar') carregarContasPagar();
   if (key === 'receber') carregarContasReceber();
 }
@@ -2345,6 +2347,73 @@ async function carregarContasReceber() {
   const totalEmAberto = emAberto.reduce((soma, l) => soma + Number(l.valor), 0);
   document.getElementById('receber-subtitle').textContent =
     `${emAberto.length} lançamentos em aberto — ${formatarMoeda(totalEmAberto)}`;
+}
+
+async function carregarDashboard() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) return;
+
+  const { data: lancs, error } = await sb
+    .from('lancamentos')
+    .select('*')
+    .eq('empresa_id', empresaId);
+
+  if (error) {
+    showToast('Erro ao carregar dashboard: ' + error.message, 'error');
+    return;
+  }
+
+  const hoje = new Date();
+  const em30 = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  // A pagar / a receber nos próximos 30 dias (não pago/recebido/cancelado, vencendo até lá)
+  const pagarAberto = lancs.filter(l =>
+    l.tipo === 'pagar' && !['pago', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= em30
+  );
+  const receberAberto = lancs.filter(l =>
+    l.tipo === 'receber' && !['recebido', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= em30
+  );
+  const totalPagar30 = pagarAberto.reduce((s, l) => s + Number(l.valor), 0);
+  const totalReceber30 = receberAberto.reduce((s, l) => s + Number(l.valor), 0);
+
+  // Saldo consolidado: total já recebido menos total já pago (histórico realizado)
+  const totalRecebido = lancs.filter(l => l.tipo === 'receber' && l.status === 'recebido').reduce((s, l) => s + Number(l.valor), 0);
+  const totalPago = lancs.filter(l => l.tipo === 'pagar' && l.status === 'pago').reduce((s, l) => s + Number(l.valor), 0);
+  const saldoConsolidado = totalRecebido - totalPago;
+
+  // Inadimplência: % do valor inadimplente sobre o total de contas a receber válidas
+  const receberValidos = lancs.filter(l => l.tipo === 'receber' && l.status !== 'cancelado');
+  const totalReceberValidos = receberValidos.reduce((s, l) => s + Number(l.valor), 0);
+  const totalInadimplente = lancs.filter(l => l.tipo === 'receber' && l.status === 'inadimplente').reduce((s, l) => s + Number(l.valor), 0);
+  const pctInadimplencia = totalReceberValidos > 0 ? (totalInadimplente / totalReceberValidos * 100) : 0;
+
+  document.getElementById('kpi-saldo').textContent = formatarMoeda(saldoConsolidado);
+  document.getElementById('kpi-pagar30').textContent = formatarMoeda(totalPagar30);
+  document.getElementById('kpi-receber30').textContent = formatarMoeda(totalReceber30);
+  document.getElementById('kpi-inadimplencia').textContent = pctInadimplencia.toFixed(1).replace('.', ',') + '%';
+
+  // Deltas ocultos por enquanto (exigem histórico mensal que ainda não coletamos)
+  ['kpi-saldo-delta', 'kpi-pagar30-delta', 'kpi-receber30-delta', 'kpi-inadimplencia-delta'].forEach(id => {
+    document.getElementById(id).textContent = '';
+  });
+
+  // Aging de inadimplência: agrupa lançamentos 'inadimplente' por faixa de dias vencidos
+  const inadimplentes = lancs.filter(l => l.tipo === 'receber' && l.status === 'inadimplente');
+  const buckets = { b1: 0, b2: 0, b3: 0, b4: 0 };
+  inadimplentes.forEach(l => {
+    const dias = Math.floor((hoje - new Date(l.vencimento + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+    if (dias <= 30) buckets.b1 += Number(l.valor);
+    else if (dias <= 60) buckets.b2 += Number(l.valor);
+    else if (dias <= 90) buckets.b3 += Number(l.valor);
+    else buckets.b4 += Number(l.valor);
+  });
+  const totalAging = buckets.b1 + buckets.b2 + buckets.b3 + buckets.b4;
+  document.getElementById('aging-total').textContent = formatarMoeda(totalAging) + ' total';
+  [['1', buckets.b1], ['2', buckets.b2], ['3', buckets.b3], ['4', buckets.b4]].forEach(([n, valor]) => {
+    const pct = totalAging > 0 ? (valor / totalAging * 100) : 0;
+    document.getElementById('aging-fill-' + n).style.width = pct + '%';
+    document.getElementById('aging-value-' + n).textContent = formatarMoeda(valor);
+  });
 }
 
 // ============================================
@@ -2521,6 +2590,7 @@ function showToast(msg, type = 'success') {
 function changeEmpresa(val) {
   showToast('Empresa alterada. Dados atualizados.', 'info');
   const screenAtiva = document.querySelector('.screen.active');
+  if (screenAtiva && screenAtiva.id === 'screen-dashboard') carregarDashboard();
   if (screenAtiva && screenAtiva.id === 'screen-pagar') carregarContasPagar();
   if (screenAtiva && screenAtiva.id === 'screen-receber') carregarContasReceber();
 }
