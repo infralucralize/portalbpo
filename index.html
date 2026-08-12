@@ -1637,15 +1637,15 @@
         <div class="fluxo-summary">
           <div class="fluxo-summary-card">
             <div class="fluxo-summary-label">Entradas previstas</div>
-            <div class="fluxo-summary-value" style="color:var(--green)">R$ 214.900</div>
+            <div class="fluxo-summary-value" id="fluxo-entradas-total" style="color:var(--green)">—</div>
           </div>
           <div class="fluxo-summary-card">
             <div class="fluxo-summary-label">Saídas previstas</div>
-            <div class="fluxo-summary-value" style="color:var(--red)">R$ 128.450</div>
+            <div class="fluxo-summary-value" id="fluxo-saidas-total" style="color:var(--red)">—</div>
           </div>
           <div class="fluxo-summary-card">
             <div class="fluxo-summary-label">Saldo projetado</div>
-            <div class="fluxo-summary-value" style="color:var(--teal)">+ R$ 86.450</div>
+            <div class="fluxo-summary-value" id="fluxo-saldo-total" style="color:var(--teal)">—</div>
           </div>
         </div>
 
@@ -1680,7 +1680,7 @@
                     <th>Valor</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="fluxo-entradas-tbody">
                   <tr>
                     <td>Fatura #2211 — Grupo Nova Era</td>
                     <td>29/08</td>
@@ -1719,7 +1719,7 @@
                     <th>Valor</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody id="fluxo-saidas-tbody">
                   <tr>
                     <td>Aluguel sede</td>
                     <td>25/08</td>
@@ -2206,6 +2206,7 @@ function navigate(key) {
   if (key === 'dashboard') carregarDashboard();
   if (key === 'pagar') carregarContasPagar();
   if (key === 'receber') carregarContasReceber();
+  if (key === 'fluxo') carregarFluxoCaixa();
 }
 
 // Retorna o empresa_id atualmente selecionado no seletor do sidebar
@@ -2414,14 +2415,123 @@ async function carregarDashboard() {
     document.getElementById('aging-fill-' + n).style.width = pct + '%';
     document.getElementById('aging-value-' + n).textContent = formatarMoeda(valor);
   });
+
+  buildFlowChartReal('flow-chart-dash', 14, 120, lancs);
+}
+
+async function carregarFluxoCaixa() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) return;
+
+  const { data: lancs, error } = await sb
+    .from('lancamentos')
+    .select('*')
+    .eq('empresa_id', empresaId);
+
+  if (error) {
+    showToast('Erro ao carregar fluxo de caixa: ' + error.message, 'error');
+    return;
+  }
+
+  const hoje = new Date();
+  const em30 = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const entradasPrevistas = lancs
+    .filter(l => l.tipo === 'receber' && !['recebido', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= em30)
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+
+  const saidasPrevistas = lancs
+    .filter(l => l.tipo === 'pagar' && !['pago', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= em30)
+    .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+
+  const totalEntradas = entradasPrevistas.reduce((s, l) => s + Number(l.valor), 0);
+  const totalSaidas = saidasPrevistas.reduce((s, l) => s + Number(l.valor), 0);
+  const saldoProjetado = totalEntradas - totalSaidas;
+
+  document.getElementById('fluxo-entradas-total').textContent = formatarMoeda(totalEntradas);
+  document.getElementById('fluxo-saidas-total').textContent = formatarMoeda(totalSaidas);
+  document.getElementById('fluxo-saldo-total').textContent = (saldoProjetado >= 0 ? '+ ' : '− ') + formatarMoeda(Math.abs(saldoProjetado));
+  document.getElementById('fluxo-saldo-total').style.color = saldoProjetado >= 0 ? 'var(--teal)' : 'var(--red)';
+
+  const entradasTbody = document.getElementById('fluxo-entradas-tbody');
+  entradasTbody.innerHTML = entradasPrevistas.length
+    ? entradasPrevistas.map(l => `
+        <tr>
+          <td>${l.descricao}</td>
+          <td>${formatarData(l.vencimento).slice(0, 5)}</td>
+          <td><span class="amount positive">${formatarMoeda(l.valor)}</span></td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhuma entrada prevista</td></tr>';
+
+  const saidasTbody = document.getElementById('fluxo-saidas-tbody');
+  saidasTbody.innerHTML = saidasPrevistas.length
+    ? saidasPrevistas.map(l => `
+        <tr>
+          <td>${l.descricao}</td>
+          <td>${formatarData(l.vencimento).slice(0, 5)}</td>
+          <td><span class="amount negative">${formatarMoeda(l.valor)}</span></td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhuma saída prevista</td></tr>';
+
+  buildFlowChartReal('flow-chart-big', 30, 160, lancs);
 }
 
 // ============================================
 // CHARTS
 // ============================================
 function buildCharts() {
+  // Mantido como fallback visual antes dos dados reais chegarem
   buildFlowChart('flow-chart-dash', 14, 120);
   buildFlowChart('flow-chart-big', 30, 160);
+}
+
+// Constrói o gráfico de barras com dados reais de lançamentos
+// (substitui buildFlowChart quando já temos os dados do Supabase)
+function buildFlowChartReal(containerId, days, height, lancs) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.style.height = (height || 140) + 'px';
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const data = Array.from({ length: days }, (_, i) => {
+    const dia = new Date(hoje.getTime() + i * 24 * 60 * 60 * 1000);
+    const diaStr = dia.toISOString().slice(0, 10);
+
+    const entrada = lancs
+      .filter(l => l.tipo === 'receber' && !['recebido', 'cancelado'].includes(l.status) && l.vencimento === diaStr)
+      .reduce((s, l) => s + Number(l.valor), 0);
+
+    const saida = lancs
+      .filter(l => l.tipo === 'pagar' && !['pago', 'cancelado'].includes(l.status) && l.vencimento === diaStr)
+      .reduce((s, l) => s + Number(l.valor), 0);
+
+    return { entrada, saida, dataFormatada: `${String(dia.getDate()).padStart(2, '0')}/${String(dia.getMonth() + 1).padStart(2, '0')}` };
+  });
+
+  const maxVal = Math.max(1, ...data.flatMap(d => [d.entrada, d.saida]));
+
+  container.innerHTML = data.map((d, i) => {
+    const entH = Math.round((d.entrada / maxVal) * (height - 30));
+    const saiH = Math.round((d.saida / maxVal) * (height - 30));
+    const label = days <= 14
+      ? (i + 1)
+      : (i % 5 === 0 ? (i + 1) : '');
+
+    return `
+      <div class="chart-col">
+        <div class="chart-bars">
+          <div class="chart-bar entrada" style="height:${entH}px" title="Entrada em ${d.dataFormatada}: ${formatarMoeda(d.entrada)}"></div>
+          <div class="chart-bar saida" style="height:${saiH}px" title="Saída em ${d.dataFormatada}: ${formatarMoeda(d.saida)}"></div>
+        </div>
+        <div class="chart-label">${label}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -2593,6 +2703,7 @@ function changeEmpresa(val) {
   if (screenAtiva && screenAtiva.id === 'screen-dashboard') carregarDashboard();
   if (screenAtiva && screenAtiva.id === 'screen-pagar') carregarContasPagar();
   if (screenAtiva && screenAtiva.id === 'screen-receber') carregarContasReceber();
+  if (screenAtiva && screenAtiva.id === 'screen-fluxo') carregarFluxoCaixa();
 }
 
 // ============================================
