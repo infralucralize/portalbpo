@@ -1854,7 +1854,8 @@
         </div>
 
         <div class="card" id="form-novo-usuario" style="display:none">
-          <div class="card-header"><h3>Cadastrar novo usuário</h3></div>
+          <div class="card-header"><h3 id="form-usuario-titulo">Cadastrar novo usuário</h3></div>
+          <input type="hidden" id="usuario-form-id" value="">
           <div class="form-row">
             <div class="form-group">
               <label>Nome</label>
@@ -1867,7 +1868,7 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Senha temporária</label>
+              <label>Senha <span id="usuario-form-senha-hint" style="font-weight:400;color:#94A3B8"></span></label>
               <input type="text" id="usuario-form-senha" placeholder="Mínimo 6 caracteres">
             </div>
             <div class="form-group">
@@ -1888,7 +1889,7 @@
           </div>
           <div class="modal-footer" style="padding:12px 0 0">
             <button class="btn ghost" onclick="fecharFormNovoUsuario()">Cancelar</button>
-            <button class="btn" onclick="salvarNovoUsuario()">Criar usuário</button>
+            <button class="btn" id="usuario-form-btn-salvar" onclick="salvarNovoUsuario()">Criar usuário</button>
           </div>
         </div>
 
@@ -1901,6 +1902,7 @@
                   <th>E-mail</th>
                   <th>Perfil</th>
                   <th>Empresa</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -2701,6 +2703,8 @@ async function salvarNovoLancamento(tipo) {
 // ============================================
 // ADMINISTRAÇÃO: EMPRESAS (só admin_lucralize)
 // ============================================
+let ultimosUsuariosCarregados = [];
+
 async function carregarEmpresas() {
   const tbody = document.querySelector('#empresas-table tbody');
   const { data: empresas, error } = await sb.from('empresas').select('*').order('nome');
@@ -2796,18 +2800,56 @@ async function carregarUsuarios() {
           <td>${p.email}</td>
           <td>${roleLabel(p.role)}</td>
           <td>${p.empresas?.nome || '—'}</td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="action-btn view" onclick="abrirFormEdicaoUsuario('${p.id}')">Editar</button>
+              <button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirUsuario('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Excluir</button>
+            </div>
+          </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhum usuário cadastrado</td></tr>';
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Nenhum usuário cadastrado</td></tr>';
+
+  ultimosUsuariosCarregados = perfisData;
 
   toggleCampoEmpresaUsuario();
 }
 
 function abrirFormNovoUsuario() {
+  document.getElementById('usuario-form-id').value = '';
+  document.getElementById('form-usuario-titulo').textContent = 'Cadastrar novo usuário';
+  document.getElementById('usuario-form-btn-salvar').textContent = 'Criar usuário';
+  document.getElementById('usuario-form-senha-hint').textContent = '';
+  document.getElementById('usuario-form-email').disabled = false;
   document.getElementById('form-novo-usuario').style.display = 'block';
 }
+
+function abrirFormEdicaoUsuario(userId) {
+  const usuario = ultimosUsuariosCarregados.find(u => u.id === userId);
+  if (!usuario) {
+    showToast('Usuário não encontrado.', 'error');
+    return;
+  }
+
+  document.getElementById('usuario-form-id').value = usuario.id;
+  document.getElementById('usuario-form-nome').value = usuario.nome;
+  document.getElementById('usuario-form-email').value = usuario.email;
+  document.getElementById('usuario-form-senha').value = '';
+  document.getElementById('usuario-form-role').value = usuario.role;
+  document.getElementById('usuario-form-empresa').value = usuario.empresa_id || '';
+
+  document.getElementById('form-usuario-titulo').textContent = `Editando: ${usuario.nome}`;
+  document.getElementById('usuario-form-btn-salvar').textContent = 'Salvar alterações';
+  document.getElementById('usuario-form-senha-hint').textContent = '(deixe em branco para não alterar)';
+
+  toggleCampoEmpresaUsuario();
+  document.getElementById('form-novo-usuario').style.display = 'block';
+  document.getElementById('form-novo-usuario').scrollIntoView({ behavior: 'smooth' });
+}
+
 function fecharFormNovoUsuario() {
   document.getElementById('form-novo-usuario').style.display = 'none';
+  document.getElementById('usuario-form-id').value = '';
   document.getElementById('usuario-form-nome').value = '';
   document.getElementById('usuario-form-email').value = '';
   document.getElementById('usuario-form-senha').value = '';
@@ -2816,32 +2858,13 @@ function fecharFormNovoUsuario() {
   toggleCampoEmpresaUsuario();
 }
 
-async function salvarNovoUsuario() {
-  const nome = document.getElementById('usuario-form-nome').value.trim();
-  const email = document.getElementById('usuario-form-email').value.trim();
-  const senha = document.getElementById('usuario-form-senha').value;
-  const role = document.getElementById('usuario-form-role').value;
-  const empresaId = document.getElementById('usuario-form-empresa').value || null;
-
-  if (!nome || !email || !senha) {
-    showToast('Preencha nome, e-mail e senha.', 'error');
-    return;
-  }
-  if (senha.length < 6) {
-    showToast('A senha precisa ter no mínimo 6 caracteres.', 'error');
-    return;
-  }
-  if (role.startsWith('cliente_') && !empresaId) {
-    showToast('Selecione a empresa vinculada a este cliente.', 'error');
-    return;
-  }
-
+async function chamarAdminUserFunction(payload) {
   const { data: sessionData } = await sb.auth.getSession();
   const accessToken = sessionData?.session?.access_token;
 
   if (!accessToken) {
     showToast('Sessão expirada, faça login novamente.', 'error');
-    return;
+    return null;
   }
 
   const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-create-user`, {
@@ -2851,18 +2874,63 @@ async function salvarNovoUsuario() {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': `Bearer ${accessToken}`
     },
-    body: JSON.stringify({ nome, email, password: senha, role, empresa_id: empresaId })
+    body: JSON.stringify(payload)
   });
 
   const resultado = await resp.json();
-
   if (!resp.ok) {
-    showToast('Erro ao criar usuário: ' + (resultado.error || 'erro desconhecido'), 'error');
+    showToast('Erro: ' + (resultado.error || 'erro desconhecido'), 'error');
+    return null;
+  }
+  return resultado;
+}
+
+async function salvarNovoUsuario() {
+  const userId = document.getElementById('usuario-form-id').value;
+  const isEdicao = !!userId;
+
+  const nome = document.getElementById('usuario-form-nome').value.trim();
+  const email = document.getElementById('usuario-form-email').value.trim();
+  const senha = document.getElementById('usuario-form-senha').value;
+  const role = document.getElementById('usuario-form-role').value;
+  const empresaId = document.getElementById('usuario-form-empresa').value || null;
+
+  if (!nome || !email) {
+    showToast('Preencha nome e e-mail.', 'error');
+    return;
+  }
+  if (!isEdicao && !senha) {
+    showToast('Defina uma senha para o novo usuário.', 'error');
+    return;
+  }
+  if (senha && senha.length < 6) {
+    showToast('A senha precisa ter no mínimo 6 caracteres.', 'error');
+    return;
+  }
+  if (role.startsWith('cliente_') && !empresaId) {
+    showToast('Selecione a empresa vinculada a este cliente.', 'error');
     return;
   }
 
-  showToast('Usuário criado com sucesso!', 'success');
+  const payload = isEdicao
+    ? { action: 'update', user_id: userId, nome, email, password: senha || undefined, role, empresa_id: empresaId }
+    : { action: 'create', nome, email, password: senha, role, empresa_id: empresaId };
+
+  const resultado = await chamarAdminUserFunction(payload);
+  if (!resultado) return;
+
+  showToast(isEdicao ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!', 'success');
   fecharFormNovoUsuario();
+  carregarUsuarios();
+}
+
+async function excluirUsuario(userId, nome) {
+  if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
+
+  const resultado = await chamarAdminUserFunction({ action: 'delete', user_id: userId });
+  if (!resultado) return;
+
+  showToast('Usuário excluído com sucesso!', 'success');
   carregarUsuarios();
 }
 
@@ -3109,4 +3177,3 @@ const origNavigate = navigate;
 </script>
 </body>
 </html>
-
