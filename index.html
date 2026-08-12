@@ -1301,40 +1301,30 @@
                     <div class="td-main">Prazo médio de recebimento (PMR)</div>
                     <div class="td-sub">Tempo médio para receber de clientes</div>
                   </td>
-                  <td class="ind-valor">34 dias</td>
-                  <td>31 dias</td>
+                  <td class="ind-valor" id="ind-pmr-atual">—</td>
+                  <td id="ind-pmr-anterior">—</td>
                   <td>≤ 30 dias</td>
-                  <td><span class="ind-meta-bad">● Acima da meta</span></td>
+                  <td id="ind-pmr-situacao">—</td>
                 </tr>
                 <tr>
                   <td>
                     <div class="td-main">Prazo médio de pagamento (PMP)</div>
                     <div class="td-sub">Tempo médio para pagar fornecedores</div>
                   </td>
-                  <td class="ind-valor">28 dias</td>
-                  <td>27 dias</td>
+                  <td class="ind-valor" id="ind-pmp-atual">—</td>
+                  <td id="ind-pmp-anterior">—</td>
                   <td>30–35 dias</td>
-                  <td><span class="ind-meta-ok">● Dentro da meta</span></td>
+                  <td id="ind-pmp-situacao">—</td>
                 </tr>
                 <tr>
                   <td>
                     <div class="td-main">Ciclo financeiro</div>
                     <div class="td-sub">PMR − PMP</div>
                   </td>
-                  <td class="ind-valor">6 dias</td>
-                  <td>4 dias</td>
+                  <td class="ind-valor" id="ind-ciclo-atual">—</td>
+                  <td id="ind-ciclo-anterior">—</td>
                   <td>≤ 5 dias</td>
-                  <td><span class="ind-meta-warn">● Atenção</span></td>
-                </tr>
-                <tr>
-                  <td>
-                    <div class="td-main">Liquidez corrente</div>
-                    <div class="td-sub">Ativo circulante / Passivo circulante</div>
-                  </td>
-                  <td class="ind-valor">1,8</td>
-                  <td>1,7</td>
-                  <td>≥ 1,5</td>
-                  <td><span class="ind-meta-ok">● Dentro da meta</span></td>
+                  <td id="ind-ciclo-situacao">—</td>
                 </tr>
               </tbody>
             </table>
@@ -2414,6 +2404,73 @@ async function carregarDashboard() {
   });
 
   buildFlowChartReal('flow-chart-dash', 14, 120, lancs);
+  carregarIndicadores(lancs);
+}
+
+// Calcula PMR, PMP e Ciclo Financeiro reais a partir dos lançamentos
+// já pagos/recebidos (data_pagamento preenchida), comparando mês
+// atual com mês anterior. Liquidez corrente foi removida da tabela
+// porque exigiria dados de balanço patrimonial que não modelamos.
+function carregarIndicadores(lancs) {
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
+  const dataAnterior = new Date(anoAtual, mesAtual - 1, 1);
+  const mesAnterior = dataAnterior.getMonth();
+  const anoAnterior = dataAnterior.getFullYear();
+
+  function diasEntre(dataInicio, dataFim) {
+    const d1 = new Date(dataInicio + 'T00:00:00');
+    const d2 = new Date(dataFim + 'T00:00:00');
+    return (d2 - d1) / (1000 * 60 * 60 * 24);
+  }
+
+  function filtrarPorMesPagamento(tipo, statusOk, mes, ano) {
+    return lancs.filter(l => {
+      if (l.tipo !== tipo || l.status !== statusOk || !l.data_pagamento) return false;
+      const d = new Date(l.data_pagamento + 'T00:00:00');
+      return d.getMonth() === mes && d.getFullYear() === ano;
+    });
+  }
+
+  function calcularPrazoMedio(items) {
+    if (!items.length) return null;
+    const soma = items.reduce((s, l) => s + diasEntre(l.vencimento, l.data_pagamento), 0);
+    return soma / items.length;
+  }
+
+  const pmrAtual = calcularPrazoMedio(filtrarPorMesPagamento('receber', 'recebido', mesAtual, anoAtual));
+  const pmrAnterior = calcularPrazoMedio(filtrarPorMesPagamento('receber', 'recebido', mesAnterior, anoAnterior));
+  const pmpAtual = calcularPrazoMedio(filtrarPorMesPagamento('pagar', 'pago', mesAtual, anoAtual));
+  const pmpAnterior = calcularPrazoMedio(filtrarPorMesPagamento('pagar', 'pago', mesAnterior, anoAnterior));
+
+  const cicloAtual = (pmrAtual !== null && pmpAtual !== null) ? pmrAtual - pmpAtual : null;
+  const cicloAnterior = (pmrAnterior !== null && pmpAnterior !== null) ? pmrAnterior - pmpAnterior : null;
+
+  const fmtDias = v => v === null ? '—' : `${Math.round(v)} dias`;
+
+  document.getElementById('ind-pmr-atual').textContent = fmtDias(pmrAtual);
+  document.getElementById('ind-pmr-anterior').textContent = fmtDias(pmrAnterior);
+  document.getElementById('ind-pmp-atual').textContent = fmtDias(pmpAtual);
+  document.getElementById('ind-pmp-anterior').textContent = fmtDias(pmpAnterior);
+  document.getElementById('ind-ciclo-atual').textContent = fmtDias(cicloAtual);
+  document.getElementById('ind-ciclo-anterior').textContent = fmtDias(cicloAnterior);
+
+  const situacaoHtml = (chave) => ({
+    ok: '<span class="ind-meta-ok">● Dentro da meta</span>',
+    bad: '<span class="ind-meta-bad">● Acima da meta</span>',
+    warn: '<span class="ind-meta-warn">● Atenção</span>',
+    none: '<span style="color:#94A3B8">Sem dados no mês</span>',
+  }[chave] || '');
+
+  document.getElementById('ind-pmr-situacao').innerHTML =
+    pmrAtual === null ? situacaoHtml('none') : situacaoHtml(pmrAtual <= 30 ? 'ok' : 'bad');
+
+  document.getElementById('ind-pmp-situacao').innerHTML =
+    pmpAtual === null ? situacaoHtml('none') : situacaoHtml((pmpAtual >= 30 && pmpAtual <= 35) ? 'ok' : 'warn');
+
+  document.getElementById('ind-ciclo-situacao').innerHTML =
+    cicloAtual === null ? situacaoHtml('none') : situacaoHtml(cicloAtual <= 5 ? 'ok' : 'warn');
 }
 
 async function carregarFluxoCaixa() {
