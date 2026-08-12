@@ -2203,6 +2203,7 @@ function navigate(key) {
   }
 
   if (key === 'pagar') carregarContasPagar();
+  if (key === 'receber') carregarContasReceber();
 }
 
 // Retorna o empresa_id atualmente selecionado no seletor do sidebar
@@ -2288,6 +2289,62 @@ async function carregarContasPagar() {
 
   // Reaplica permissões (os botões novos vieram sempre visíveis por padrão)
   if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+async function carregarContasReceber() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#receber-table tbody');
+  if (!empresaId) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Selecione uma empresa</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data: lancamentos, error } = await sb
+    .from('lancamentos')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .eq('tipo', 'receber')
+    .order('vencimento', { ascending: true });
+
+  if (error) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red)">Erro ao carregar dados</td></tr>';
+    showToast('Erro ao carregar contas a receber: ' + error.message, 'error');
+    return;
+  }
+
+  if (!lancamentos.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhum lançamento encontrado</td></tr>';
+  } else {
+    const hoje = new Date();
+    tbody.innerHTML = lancamentos.map(l => {
+      let diasCol = '—';
+      if (l.status === 'inadimplente') {
+        const venc = new Date(l.vencimento + 'T00:00:00');
+        const dias = Math.floor((hoje - venc) / (1000 * 60 * 60 * 24));
+        diasCol = `<span style="color:var(--red);font-weight:600">${dias} dias</span>`;
+      }
+      return `
+        <tr data-status="${l.status}" data-id="${l.id}">
+          <td>
+            <div class="td-main">${l.descricao}</div>
+            <div class="td-sub">${l.observacoes || ''}</div>
+          </td>
+          <td>${formatarData(l.vencimento)}</td>
+          <td>${diasCol}</td>
+          <td><span class="amount positive">${formatarMoeda(l.valor)}</span></td>
+          <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
+          <td><button class="action-btn view">Ver</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  const emAberto = lancamentos.filter(l => l.status !== 'recebido' && l.status !== 'cancelado');
+  const totalEmAberto = emAberto.reduce((soma, l) => soma + Number(l.valor), 0);
+  document.getElementById('receber-subtitle').textContent =
+    `${emAberto.length} lançamentos em aberto — ${formatarMoeda(totalEmAberto)}`;
 }
 
 // ============================================
@@ -2465,6 +2522,7 @@ function changeEmpresa(val) {
   showToast('Empresa alterada. Dados atualizados.', 'info');
   const screenAtiva = document.querySelector('.screen.active');
   if (screenAtiva && screenAtiva.id === 'screen-pagar') carregarContasPagar();
+  if (screenAtiva && screenAtiva.id === 'screen-receber') carregarContasReceber();
 }
 
 // ============================================
