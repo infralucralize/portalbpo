@@ -2775,7 +2775,7 @@ async function carregarUsuarios() {
 
   const { data: perfisData, error } = await sb
     .from('perfis')
-    .select('*, empresas(nome)')
+    .select('*, empresas!empresa_id(nome)')
     .order('created_at', { ascending: false });
 
   if (error) {
