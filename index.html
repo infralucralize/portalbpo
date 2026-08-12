@@ -1921,20 +1921,33 @@
           <input type="date" id="pagar-form-vencimento">
         </div>
       </div>
-      <div class="form-group">
-        <label>Categoria</label>
-        <select id="pagar-form-categoria">
-          <option value="">Selecione</option>
-          <option>Operacional</option>
-          <option>Financeira</option>
-          <option>Investimento</option>
-          <option>Marketing</option>
-          <option>Administrativa</option>
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="pagar-form-categoria">
+            <option value="">Selecione</option>
+            <option>Operacional</option>
+            <option>Financeira</option>
+            <option>Investimento</option>
+            <option>Marketing</option>
+            <option>Administrativa</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Forma de pagamento</label>
+          <select id="pagar-form-forma">
+            <option value="">Selecione</option>
+            <option>Boleto</option>
+            <option>PIX</option>
+            <option>TED</option>
+            <option>Débito automático</option>
+            <option>Outro</option>
+          </select>
+        </div>
       </div>
       <div class="form-group">
         <label>Observações (opcional)</label>
-        <input type="text" id="pagar-form-observacoes" placeholder="Ex: Forma de pagamento, número do boleto, etc.">
+        <input type="text" id="pagar-form-observacoes" placeholder="Ex: número do boleto, condições, etc.">
       </div>
     </div>
     <div class="modal-footer">
@@ -2254,7 +2267,7 @@ async function carregarContasPagar() {
           </td>
           <td>${l.categoria || '—'}</td>
           <td>${formatarData(l.vencimento)}</td>
-          <td>—</td>
+          <td>${l.forma_pagamento || '—'}</td>
           <td><span class="amount">${formatarMoeda(l.valor)}</span></td>
           <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
           <td>
@@ -2612,6 +2625,8 @@ async function salvarNovoLancamento(tipo) {
   const vencimento = document.getElementById(`${prefixo}-form-vencimento`).value;
   const categoria = document.getElementById(`${prefixo}-form-categoria`).value || null;
   const observacoes = document.getElementById(`${prefixo}-form-observacoes`).value.trim() || null;
+  const formaPagamentoEl = document.getElementById(`${prefixo}-form-forma`);
+  const formaPagamento = formaPagamentoEl ? (formaPagamentoEl.value || null) : null;
 
   if (!descricao || !valorStr || !vencimento) {
     showToast('Preencha descrição, valor e vencimento.', 'error');
@@ -2638,6 +2653,7 @@ async function salvarNovoLancamento(tipo) {
     vencimento: vencimento,
     categoria: categoria,
     observacoes: observacoes,
+    forma_pagamento: formaPagamento,
     criado_por: currentUser.id
   });
 
@@ -2652,6 +2668,7 @@ async function salvarNovoLancamento(tipo) {
   document.getElementById(`${prefixo}-form-vencimento`).value = '';
   document.getElementById(`${prefixo}-form-categoria`).value = '';
   document.getElementById(`${prefixo}-form-observacoes`).value = '';
+  if (formaPagamentoEl) formaPagamentoEl.value = '';
 
   closeModal(`modal-${prefixo}`);
   showToast(`Lançamento a ${tipo === 'pagar' ? 'pagar' : 'receber'} criado com sucesso!`, 'success');
