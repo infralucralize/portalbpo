@@ -1178,6 +1178,15 @@
         Conciliação Bancária
         <span class="nav-badge" id="badge-conc">3</span>
       </div>
+      <div class="nav-section-label admin-only" style="display:none">Administração</div>
+      <div class="nav-item admin-only" data-screen="empresas" style="display:none">
+        <div class="nav-icon">🏢</div>
+        Empresas
+      </div>
+      <div class="nav-item admin-only" data-screen="usuarios" style="display:none">
+        <div class="nav-icon">👤</div>
+        Usuários
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -1783,6 +1792,125 @@
         </div>
       </div>
 
+      <!-- ============ EMPRESAS (admin/equipe) ============ -->
+      <div class="screen" id="screen-empresas">
+        <div class="toolbar">
+          <div>
+            <h2>Empresas</h2>
+            <div class="subtitle" id="empresas-subtitle">Gestão das empresas atendidas</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn" onclick="abrirFormNovaEmpresa()">+ Nova empresa</button>
+          </div>
+        </div>
+
+        <div class="card" id="form-nova-empresa" style="display:none">
+          <div class="card-header"><h3>Cadastrar nova empresa</h3></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome da empresa</label>
+              <input type="text" id="empresa-form-nome" placeholder="Ex: Comércio Boa Vista Ltda.">
+            </div>
+            <div class="form-group">
+              <label>CNPJ</label>
+              <input type="text" id="empresa-form-cnpj" placeholder="00.000.000/0001-00">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovaEmpresa()">Cancelar</button>
+            <button class="btn" onclick="salvarNovaEmpresa()">Salvar empresa</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="empresas-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>CNPJ</th>
+                  <th>Status</th>
+                  <th>Cadastrada em</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ USUÁRIOS (admin/equipe) ============ -->
+      <div class="screen" id="screen-usuarios">
+        <div class="toolbar">
+          <div>
+            <h2>Usuários</h2>
+            <div class="subtitle" id="usuarios-subtitle">Gestão de acessos ao portal</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn" onclick="abrirFormNovoUsuario()">+ Novo usuário</button>
+          </div>
+        </div>
+
+        <div class="card" id="form-novo-usuario" style="display:none">
+          <div class="card-header"><h3>Cadastrar novo usuário</h3></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="usuario-form-nome" placeholder="Nome completo">
+            </div>
+            <div class="form-group">
+              <label>E-mail</label>
+              <input type="email" id="usuario-form-email" placeholder="email@empresa.com.br">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Senha temporária</label>
+              <input type="text" id="usuario-form-senha" placeholder="Mínimo 6 caracteres">
+            </div>
+            <div class="form-group">
+              <label>Perfil de acesso</label>
+              <select id="usuario-form-role" onchange="toggleCampoEmpresaUsuario()">
+                <option value="cliente_lancamento">Cliente — lançamentos próprios</option>
+                <option value="cliente_viewer">Cliente — somente leitura</option>
+                <option value="equipe_lucralize">Equipe Lucralize</option>
+                <option value="admin_lucralize">Admin Lucralize</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="usuario-form-empresa-wrapper">
+            <label>Empresa vinculada</label>
+            <select id="usuario-form-empresa">
+              <option value="">Selecione uma empresa</option>
+            </select>
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovoUsuario()">Cancelar</button>
+            <button class="btn" onclick="salvarNovoUsuario()">Criar usuário</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="usuarios-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Perfil</th>
+                  <th>Empresa</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app -->
@@ -2047,6 +2175,7 @@ async function handleLogout() {
 function applyRolePermissions(role) {
   const canCreate = ['admin_lucralize', 'equipe_lucralize', 'cliente_lancamento'].includes(role);
   const canApprove = ['admin_lucralize', 'equipe_lucralize'].includes(role);
+  const isAdmin = role === 'admin_lucralize';
 
   document.querySelectorAll('.can-create').forEach(el => {
     el.style.display = canCreate ? '' : 'none';
@@ -2054,6 +2183,10 @@ function applyRolePermissions(role) {
 
   document.querySelectorAll('.can-approve').forEach(el => {
     el.style.display = canApprove ? '' : 'none';
+  });
+
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = isAdmin ? '' : 'none';
   });
 }
 
@@ -2066,6 +2199,8 @@ const screenTitles = {
   receber: ['Contas a Receber', 'Controle de faturamento e inadimplência'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
+  empresas: ['Empresas', 'Gestão das empresas clientes'],
+  usuarios: ['Usuários', 'Gestão de acessos e permissões'],
 };
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -2092,6 +2227,8 @@ function navigate(key) {
   if (key === 'receber') carregarContasReceber();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
+  if (key === 'empresas') carregarEmpresas();
+  if (key === 'usuarios') carregarUsuarios();
 }
 
 // Retorna o empresa_id atualmente selecionado no seletor do sidebar
@@ -2559,6 +2696,170 @@ async function salvarNovoLancamento(tipo) {
 
   if (tipo === 'pagar') carregarContasPagar();
   if (tipo === 'receber') carregarContasReceber();
+}
+
+// ============================================
+// ADMINISTRAÇÃO: EMPRESAS (só admin_lucralize)
+// ============================================
+async function carregarEmpresas() {
+  const tbody = document.querySelector('#empresas-table tbody');
+  const { data: empresas, error } = await sb.from('empresas').select('*').order('nome');
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  document.getElementById('empresas-subtitle').textContent = `${empresas.length} empresa(s) cadastrada(s)`;
+
+  tbody.innerHTML = empresas.length
+    ? empresas.map(e => `
+        <tr>
+          <td>${e.nome}</td>
+          <td>${e.cnpj}</td>
+          <td><span class="status-pill ${e.ativo ? 'status-pago' : 'status-atrasado'}">${e.ativo ? 'Ativa' : 'Inativa'}</span></td>
+          <td>${formatarData(e.created_at.slice(0, 10))}</td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
+
+  // Também alimenta o seletor de empresa do formulário de usuários
+  const sel = document.getElementById('usuario-form-empresa');
+  if (sel) {
+    sel.innerHTML = '<option value="">Selecione uma empresa</option>' +
+      empresas.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  }
+}
+
+function abrirFormNovaEmpresa() {
+  document.getElementById('form-nova-empresa').style.display = 'block';
+}
+function fecharFormNovaEmpresa() {
+  document.getElementById('form-nova-empresa').style.display = 'none';
+  document.getElementById('empresa-form-nome').value = '';
+  document.getElementById('empresa-form-cnpj').value = '';
+}
+
+async function salvarNovaEmpresa() {
+  const nome = document.getElementById('empresa-form-nome').value.trim();
+  const cnpj = document.getElementById('empresa-form-cnpj').value.trim();
+
+  if (!nome || !cnpj) {
+    showToast('Preencha nome e CNPJ.', 'error');
+    return;
+  }
+
+  const { error } = await sb.from('empresas').insert({ nome, cnpj });
+
+  if (error) {
+    showToast('Erro ao criar empresa: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Empresa criada com sucesso!', 'success');
+  fecharFormNovaEmpresa();
+  carregarEmpresas();
+}
+
+// ============================================
+// ADMINISTRAÇÃO: USUÁRIOS (só admin_lucralize)
+// ============================================
+function toggleCampoEmpresaUsuario() {
+  const role = document.getElementById('usuario-form-role').value;
+  const wrapper = document.getElementById('usuario-form-empresa-wrapper');
+  wrapper.style.display = role.startsWith('cliente_') ? 'block' : 'none';
+}
+
+async function carregarUsuarios() {
+  const tbody = document.querySelector('#usuarios-table tbody');
+
+  const { data: perfisData, error } = await sb
+    .from('perfis')
+    .select('*, empresas(nome)')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  document.getElementById('usuarios-subtitle').textContent = `${perfisData.length} usuário(s) cadastrado(s)`;
+
+  tbody.innerHTML = perfisData.length
+    ? perfisData.map(p => `
+        <tr>
+          <td>${p.nome}</td>
+          <td>${p.email}</td>
+          <td>${roleLabel(p.role)}</td>
+          <td>${p.empresas?.nome || '—'}</td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhum usuário cadastrado</td></tr>';
+
+  toggleCampoEmpresaUsuario();
+}
+
+function abrirFormNovoUsuario() {
+  document.getElementById('form-novo-usuario').style.display = 'block';
+}
+function fecharFormNovoUsuario() {
+  document.getElementById('form-novo-usuario').style.display = 'none';
+  document.getElementById('usuario-form-nome').value = '';
+  document.getElementById('usuario-form-email').value = '';
+  document.getElementById('usuario-form-senha').value = '';
+  document.getElementById('usuario-form-role').value = 'cliente_lancamento';
+  document.getElementById('usuario-form-empresa').value = '';
+  toggleCampoEmpresaUsuario();
+}
+
+async function salvarNovoUsuario() {
+  const nome = document.getElementById('usuario-form-nome').value.trim();
+  const email = document.getElementById('usuario-form-email').value.trim();
+  const senha = document.getElementById('usuario-form-senha').value;
+  const role = document.getElementById('usuario-form-role').value;
+  const empresaId = document.getElementById('usuario-form-empresa').value || null;
+
+  if (!nome || !email || !senha) {
+    showToast('Preencha nome, e-mail e senha.', 'error');
+    return;
+  }
+  if (senha.length < 6) {
+    showToast('A senha precisa ter no mínimo 6 caracteres.', 'error');
+    return;
+  }
+  if (role.startsWith('cliente_') && !empresaId) {
+    showToast('Selecione a empresa vinculada a este cliente.', 'error');
+    return;
+  }
+
+  const { data: sessionData } = await sb.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+
+  if (!accessToken) {
+    showToast('Sessão expirada, faça login novamente.', 'error');
+    return;
+  }
+
+  const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-create-user`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${accessToken}`
+    },
+    body: JSON.stringify({ nome, email, password: senha, role, empresa_id: empresaId })
+  });
+
+  const resultado = await resp.json();
+
+  if (!resp.ok) {
+    showToast('Erro ao criar usuário: ' + (resultado.error || 'erro desconhecido'), 'error');
+    return;
+  }
+
+  showToast('Usuário criado com sucesso!', 'success');
+  fecharFormNovoUsuario();
+  carregarUsuarios();
 }
 
 // ============================================
