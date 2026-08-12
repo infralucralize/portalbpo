@@ -1098,36 +1098,14 @@
     <form id="login-form" onsubmit="handleLogin(event)">
       <div class="form-group">
         <label>E-mail</label>
-        <input type="email" id="login-email" placeholder="seu@email.com" value="carolina@lucralize.com.br" required>
+        <input type="email" id="login-email" placeholder="seu@email.com" required>
       </div>
       <div class="form-group">
         <label>Senha</label>
-        <input type="password" id="login-password" placeholder="••••••••" value="senha123" required>
+        <input type="password" id="login-password" placeholder="••••••••" required>
       </div>
       <button type="submit" class="login-btn">Entrar no painel</button>
     </form>
-
-    <div class="login-demo-hint">
-      <strong>🎭 Entrar como usuário de demonstração:</strong>
-      <div class="demo-users">
-        <button class="demo-user-btn" onclick="loginAs('admin')">
-          Admin Lucralize — acesso total
-          <span class="badge">Admin</span>
-        </button>
-        <button class="demo-user-btn" onclick="loginAs('equipe')">
-          Equipe Lucralize — criar e editar
-          <span class="badge">Equipe</span>
-        </button>
-        <button class="demo-user-btn" onclick="loginAs('cliente_lancamento')">
-          Cliente — lançamentos próprios
-          <span class="badge">Cliente</span>
-        </button>
-        <button class="demo-user-btn" onclick="loginAs('cliente_viewer')">
-          Cliente — somente leitura
-          <span class="badge">Leitura</span>
-        </button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -2026,17 +2004,6 @@ const SUPABASE_URL = 'https://uzjafpxkxqsijtlijpcx.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_GCq4hzPAvDnIMVMJpEPL4Q_mtQ6MrWC';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ============================================
-// USUÁRIOS DE TESTE (login rápido em dev)
-// Credenciais reais criadas no passo 2 — troque/remova antes de produção
-// ============================================
-const DEMO_USERS = {
-  admin:              { email: 'admin@lucralize.com.br',         password: 'TrocarSenha123!' },
-  equipe:             { email: 'equipe@lucralize.com.br',        password: 'TrocarSenha123!' },
-  cliente_lancamento: { email: 'lancamento@empresateste.com.br', password: 'TrocarSenha123!' },
-  cliente_viewer:     { email: 'viewer@empresateste.com.br',     password: 'TrocarSenha123!' },
-};
-
 function roleLabel(role) {
   return {
     admin_lucralize: 'Admin',
@@ -2058,13 +2025,6 @@ let currentUser = null;
 // ============================================
 // AUTH
 // ============================================
-function loginAs(role) {
-  const demo = DEMO_USERS[role];
-  document.getElementById('login-email').value = demo.email;
-  document.getElementById('login-password').value = demo.password;
-  document.getElementById('login-form').requestSubmit();
-}
-
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('login-email').value;
