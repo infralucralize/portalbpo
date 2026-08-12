@@ -2130,7 +2130,7 @@ function renderizarAppLogado() {
   // Empresa selector
   const sel = document.getElementById('empresa-select');
   if (!user.multiEmpresa) {
-    sel.innerHTML = `<option>${user.company}</option>`;
+    sel.innerHTML = `<option value="${user.empresaId}">${user.company}</option>`;
     sel.disabled = true;
   } else {
     sel.innerHTML = user.empresasDisponiveis
@@ -2201,6 +2201,93 @@ function navigate(key) {
     document.getElementById('screen-title').textContent = screenTitles[key][0];
     document.getElementById('screen-subtitle').textContent = screenTitles[key][1];
   }
+
+  if (key === 'pagar') carregarContasPagar();
+}
+
+// Retorna o empresa_id atualmente selecionado no seletor do sidebar
+function empresaAtualId() {
+  const sel = document.getElementById('empresa-select');
+  return sel.value || currentUser?.empresaId || null;
+}
+
+const statusLabelMap = {
+  aguardando_aprovacao: 'Aguardando aprovação',
+  aberto: 'Aberto',
+  atrasado: 'Atrasado',
+  pago: 'Pago',
+  recebido: 'Recebido',
+  inadimplente: 'Inadimplente',
+  cancelado: 'Cancelado',
+};
+
+function formatarMoeda(valor) {
+  return 'R$ ' + Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatarData(dataStr) {
+  const [ano, mes, dia] = dataStr.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+async function carregarContasPagar() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#pagar-table tbody');
+  if (!empresaId) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Selecione uma empresa</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data: lancamentos, error } = await sb
+    .from('lancamentos')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .eq('tipo', 'pagar')
+    .order('vencimento', { ascending: true });
+
+  if (error) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">Erro ao carregar dados</td></tr>';
+    showToast('Erro ao carregar contas a pagar: ' + error.message, 'error');
+    return;
+  }
+
+  if (!lancamentos.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Nenhum lançamento encontrado</td></tr>';
+  } else {
+    tbody.innerHTML = lancamentos.map(l => {
+      const podeAprovar = l.status === 'aguardando_aprovacao';
+      return `
+        <tr data-status="${l.status}" data-id="${l.id}">
+          <td>
+            <div class="td-main">${l.descricao}</div>
+            <div class="td-sub">${l.observacoes || ''}</div>
+          </td>
+          <td>${l.categoria || '—'}</td>
+          <td>${formatarData(l.vencimento)}</td>
+          <td>—</td>
+          <td><span class="amount">${formatarMoeda(l.valor)}</span></td>
+          <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              ${podeAprovar ? `<button class="action-btn approve can-approve" onclick="approveItem(this, 'pagar')">✓ Aprovar</button>` : ''}
+              <button class="action-btn view">Ver</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Atualiza subtítulo com contagem e total real
+  const emAberto = lancamentos.filter(l => l.status !== 'pago' && l.status !== 'cancelado');
+  const totalEmAberto = emAberto.reduce((soma, l) => soma + Number(l.valor), 0);
+  document.getElementById('pagar-subtitle').textContent =
+    `${emAberto.length} lançamentos em aberto — ${formatarMoeda(totalEmAberto)}`;
+
+  // Reaplica permissões (os botões novos vieram sempre visíveis por padrão)
+  if (currentUser) applyRolePermissions(currentUser.role);
 }
 
 // ============================================
@@ -2376,6 +2463,8 @@ function showToast(msg, type = 'success') {
 // ============================================
 function changeEmpresa(val) {
   showToast('Empresa alterada. Dados atualizados.', 'info');
+  const screenAtiva = document.querySelector('.screen.active');
+  if (screenAtiva && screenAtiva.id === 'screen-pagar') carregarContasPagar();
 }
 
 // ============================================
