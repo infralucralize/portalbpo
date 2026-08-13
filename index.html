@@ -1199,6 +1199,10 @@
         <div class="nav-icon">🏷</div>
         Categorias
       </div>
+      <div class="nav-item" data-screen="documentos">
+        <div class="nav-icon">📁</div>
+        Documentos
+      </div>
       <div class="nav-section-label">Análise</div>
       <div class="nav-item" data-screen="fluxo">
         <div class="nav-icon">∿</div>
@@ -1641,6 +1645,74 @@
                   <th>Nome</th>
                   <th>Aparece em</th>
                   <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ DOCUMENTOS (gerais, não vinculados a lançamento) ============ -->
+      <div class="screen" id="screen-documentos">
+        <div class="toolbar">
+          <div>
+            <h2>Documentos</h2>
+            <div class="subtitle" id="documentos-subtitle">Guias, balanços, contratos e outros arquivos gerais</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn can-create" onclick="abrirFormNovoDocumento()">+ Enviar documento</button>
+          </div>
+        </div>
+
+        <div class="card" id="form-novo-documento" style="display:none">
+          <div class="card-header"><h3>Enviar documento</h3></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="documento-form-categoria">
+                <option value="Guia">Guia</option>
+                <option value="Balanço">Balanço</option>
+                <option value="Folha">Folha de pagamento</option>
+                <option value="Contrato">Contrato</option>
+                <option value="Comprovante">Comprovante</option>
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Arquivo</label>
+              <input type="file" id="documento-form-arquivo" multiple>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#94A3B8;margin-top:-6px;margin-bottom:8px">
+            Tipos aceitos: PDF, JPG, PNG ou XML — máximo 5MB por arquivo. Pode selecionar mais de um.
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovoDocumento()">Cancelar</button>
+            <button class="btn" onclick="salvarDocumentoGeral()">Enviar</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="filter-chip active" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>
+          <div class="filter-chip" data-filter-group="documentos" data-filter="Guia" onclick="filtrarDocumentos('Guia', this)">Guias</div>
+          <div class="filter-chip" data-filter-group="documentos" data-filter="Balanço" onclick="filtrarDocumentos('Balanço', this)">Balanços</div>
+          <div class="filter-chip" data-filter-group="documentos" data-filter="Folha" onclick="filtrarDocumentos('Folha', this)">Folha</div>
+          <div class="filter-chip" data-filter-group="documentos" data-filter="Contrato" onclick="filtrarDocumentos('Contrato', this)">Contratos</div>
+          <div class="filter-chip" data-filter-group="documentos" data-filter="Outro" onclick="filtrarDocumentos('Outro', this)">Outros</div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="documentos-table">
+              <thead>
+                <tr>
+                  <th>Arquivo</th>
+                  <th>Categoria</th>
+                  <th>Enviado em</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -2441,6 +2513,7 @@ const screenTitles = {
   receber: ['Contas a Receber', 'Controle de faturamento e inadimplência'],
   parceiros: ['Fornecedores/Clientes', 'Cadastro de fornecedores e clientes'],
   categorias: ['Categorias', 'Plano de contas da empresa'],
+  documentos: ['Documentos', 'Guias, balanços, contratos e outros arquivos gerais'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
@@ -2480,6 +2553,7 @@ function navigate(key) {
   if (key === 'receber') carregarContasReceber();
   if (key === 'parceiros') carregarParceiros();
   if (key === 'categorias') carregarCategorias();
+  if (key === 'documentos') carregarDocumentosGerais();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
@@ -4286,6 +4360,148 @@ async function popularSeletorParceiros(tipoLancamento) {
 
   sel.innerHTML = '<option value="">Nenhum / não cadastrado</option>' +
     data.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+}
+
+// ============================================
+// DOCUMENTOS GERAIS (não vinculados a um lançamento específico)
+// ============================================
+let ultimosDocumentosCarregados = [];
+
+async function carregarDocumentosGerais() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#documentos-table tbody');
+  if (!empresaId) return;
+
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data, error } = await sb
+    .from('anexos')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .is('lancamento_id', null)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  ultimosDocumentosCarregados = data;
+  document.getElementById('documentos-subtitle').textContent = `${data.length} documento(s)`;
+  renderizarDocumentos(data);
+}
+
+function renderizarDocumentos(lista) {
+  const tbody = document.querySelector('#documentos-table tbody');
+  const podeExcluirTudo = currentUser && ['admin_lucralize', 'equipe_lucralize'].includes(currentUser.role);
+
+  tbody.innerHTML = lista.length
+    ? lista.map(a => {
+        const podeExcluir = podeExcluirTudo || a.uploaded_by === currentUser?.id;
+        return `
+          <tr data-categoria="${a.categoria_documento || 'Outro'}">
+            <td><a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${a.nome_arquivo}</a></td>
+            <td>${a.categoria_documento || 'Outro'}</td>
+            <td>${formatarData(a.created_at.slice(0, 10))}</td>
+            <td>${podeExcluir ? `<button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirDocumentoGeral('${a.id}', '${a.storage_path}')">Excluir</button>` : '—'}</td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhum documento enviado ainda</td></tr>';
+}
+
+function filtrarDocumentos(categoria, chip) {
+  document.querySelectorAll('[data-filter-group="documentos"]').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const lista = categoria === 'todos' ? ultimosDocumentosCarregados : ultimosDocumentosCarregados.filter(a => (a.categoria_documento || 'Outro') === categoria);
+  renderizarDocumentos(lista);
+}
+
+function abrirFormNovoDocumento() {
+  document.getElementById('documento-form-categoria').value = 'Guia';
+  document.getElementById('documento-form-arquivo').value = '';
+  document.getElementById('form-novo-documento').style.display = 'block';
+}
+
+function fecharFormNovoDocumento() {
+  document.getElementById('form-novo-documento').style.display = 'none';
+}
+
+async function salvarDocumentoGeral() {
+  const categoria = document.getElementById('documento-form-categoria').value;
+  const input = document.getElementById('documento-form-arquivo');
+
+  if (!input.files.length) {
+    showToast('Selecione ao menos um arquivo.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  let sucesso = 0;
+  const falhas = [];
+
+  for (const arquivo of input.files) {
+    const erroValidacao = validarArquivoAnexo(arquivo);
+    if (erroValidacao) {
+      falhas.push(erroValidacao);
+      continue;
+    }
+
+    const caminho = `${empresaId}/geral/${Date.now()}_${arquivo.name}`;
+    const { error: uploadError } = await sb.storage.from('anexos').upload(caminho, arquivo);
+    if (uploadError) {
+      falhas.push(`"${arquivo.name}": ${uploadError.message}`);
+      continue;
+    }
+
+    const { error: insertError } = await sb.from('anexos').insert({
+      empresa_id: empresaId,
+      lancamento_id: null,
+      storage_path: caminho,
+      nome_arquivo: arquivo.name,
+      tipo_arquivo: arquivo.type,
+      tamanho_bytes: arquivo.size,
+      categoria_documento: categoria,
+      uploaded_by: currentUser.id
+    });
+
+    if (insertError) {
+      falhas.push(`"${arquivo.name}": ${insertError.message}`);
+      continue;
+    }
+
+    sucesso++;
+  }
+
+  input.value = '';
+
+  if (falhas.length > 0) {
+    showToast(`${sucesso} enviado(s). Falhas: ${falhas.join('; ')}`, 'error');
+  } else {
+    showToast('Documento(s) enviado(s) com sucesso!', 'success');
+    fecharFormNovoDocumento();
+  }
+
+  carregarDocumentosGerais();
+}
+
+async function excluirDocumentoGeral(id, storagePath) {
+  if (!confirm('Excluir este documento?')) return;
+
+  const { error: storageError } = await sb.storage.from('anexos').remove([storagePath]);
+  if (storageError) {
+    showToast('Erro ao excluir arquivo: ' + storageError.message, 'error');
+    return;
+  }
+
+  const { error: dbError } = await sb.from('anexos').delete().eq('id', id);
+  if (dbError) {
+    showToast('Erro ao excluir registro: ' + dbError.message, 'error');
+    return;
+  }
+
+  showToast('Documento excluído.', 'success');
+  carregarDocumentosGerais();
 }
 
 // ============================================
