@@ -2517,7 +2517,7 @@ async function carregarPerfilEEntrar(userId) {
   renderizarAppLogado();
 }
 
-function renderizarAppLogado() {
+async function renderizarAppLogado() {
   const user = currentUser;
 
   document.getElementById('login-screen').style.display = 'none';
@@ -2543,11 +2543,15 @@ function renderizarAppLogado() {
   applyRolePermissions(user.role);
   buildCharts();
   navigate('dashboard');
+  showToast(`Bem-vindo(a), ${user.name}!`, 'info');
+
+  // Espera a geração de recorrências terminar ANTES de buscar
+  // notificações/badges, senão a notificação do lançamento recém-criado
+  // não aparece até a próxima verificação (30s depois)
+  await gerarLancamentosRecorrentesPendentes();
   atualizarTodosBadges();
   carregarNotificacoes();
   iniciarPollingNotificacoes();
-  gerarLancamentosRecorrentesPendentes();
-  showToast(`Bem-vindo(a), ${user.name}!`, 'info');
 }
 
 async function handleLogout() {
