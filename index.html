@@ -1862,6 +1862,26 @@
   </div>
 </div>
 
+<!-- ====================== MODAL: DATA DE PAGAMENTO/RECEBIMENTO ====================== -->
+<div class="modal-overlay" id="modal-data-pagamento">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div><h3 id="data-pagamento-titulo">Confirmar data</h3></div>
+      <button class="modal-close" onclick="closeModal('modal-data-pagamento')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="data-pagamento-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-data-pagamento')">Cancelar</button>
+      <button class="btn" onclick="confirmarDataPagamento()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -3194,44 +3214,53 @@ async function aprovarLancamento(lancamentoId) {
   carregarContasPagar();
 }
 
+// Contexto temporário usado pelo modal de data de pagamento/recebimento
+let dataPagamentoContexto = null;
+
+function abrirModalDataPagamento(lancamentoId, novoStatus, titulo, funcaoRecarregar) {
+  dataPagamentoContexto = { lancamentoId, novoStatus, funcaoRecarregar };
+  document.getElementById('data-pagamento-titulo').textContent = titulo;
+  document.getElementById('data-pagamento-input').value = new Date().toISOString().slice(0, 10);
+  openModal('modal-data-pagamento');
+}
+
+async function confirmarDataPagamento() {
+  const data = document.getElementById('data-pagamento-input').value;
+  if (!data) {
+    showToast('Selecione uma data.', 'error');
+    return;
+  }
+  if (!dataPagamentoContexto) return;
+
+  const { lancamentoId, novoStatus, funcaoRecarregar } = dataPagamentoContexto;
+
+  const { error } = await sb
+    .from('lancamentos')
+    .update({ status: novoStatus, data_pagamento: data })
+    .eq('id', lancamentoId);
+
+  if (error) {
+    showToast('Erro ao atualizar: ' + error.message, 'error');
+    return;
+  }
+
+  closeModal('modal-data-pagamento');
+  showToast('Lançamento atualizado com sucesso!', 'success');
+
+  if (funcaoRecarregar === 'pagar') carregarContasPagar();
+  if (funcaoRecarregar === 'receber') carregarContasReceber();
+}
+
 // Marca um lançamento de Contas a Pagar como efetivamente pago,
 // gravando a data real do pagamento (necessário para os
 // indicadores PMR/PMP/Ciclo Financeiro do Dashboard)
-async function marcarComoPago(lancamentoId) {
-  const dataPagamento = prompt('Data em que o pagamento foi feito (AAAA-MM-DD):', new Date().toISOString().slice(0, 10));
-  if (!dataPagamento) return;
-
-  const { error } = await sb
-    .from('lancamentos')
-    .update({ status: 'pago', data_pagamento: dataPagamento })
-    .eq('id', lancamentoId);
-
-  if (error) {
-    showToast('Erro ao marcar como pago: ' + error.message, 'error');
-    return;
-  }
-
-  showToast('Lançamento marcado como pago!', 'success');
-  carregarContasPagar();
+function marcarComoPago(lancamentoId) {
+  abrirModalDataPagamento(lancamentoId, 'pago', 'Data em que o pagamento foi feito', 'pagar');
 }
 
 // Mesma lógica, para o lado de Contas a Receber
-async function marcarComoRecebido(lancamentoId) {
-  const dataPagamento = prompt('Data em que o valor foi recebido (AAAA-MM-DD):', new Date().toISOString().slice(0, 10));
-  if (!dataPagamento) return;
-
-  const { error } = await sb
-    .from('lancamentos')
-    .update({ status: 'recebido', data_pagamento: dataPagamento })
-    .eq('id', lancamentoId);
-
-  if (error) {
-    showToast('Erro ao marcar como recebido: ' + error.message, 'error');
-    return;
-  }
-
-  showToast('Lançamento marcado como recebido!', 'success');
-  carregarContasReceber();
+function marcarComoRecebido(lancamentoId) {
+  abrirModalDataPagamento(lancamentoId, 'recebido', 'Data em que o valor foi recebido', 'receber');
 }
 
 // ============================================
