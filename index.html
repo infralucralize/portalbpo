@@ -2473,7 +2473,7 @@ async function carregarContasPagar() {
 
   const { data: lancamentos, error } = await sb
     .from('lancamentos')
-    .select('*')
+    .select('*, parceiros(nome)')
     .eq('empresa_id', empresaId)
     .eq('tipo', 'pagar')
     .order('vencimento', { ascending: true });
@@ -2490,11 +2490,12 @@ async function carregarContasPagar() {
     tbody.innerHTML = lancamentos.map(l => {
       const podeAprovar = l.status === 'aguardando_aprovacao';
       const podePagar = l.status === 'aberto' || l.status === 'atrasado';
+      const nomeParceiro = l.parceiros?.nome;
       return `
         <tr data-status="${l.status}" data-id="${l.id}">
           <td>
-            <div class="td-main">${l.descricao}</div>
-            <div class="td-sub">${l.observacoes || ''}</div>
+            <div class="td-main">${nomeParceiro || l.descricao}</div>
+            <div class="td-sub">${nomeParceiro ? l.descricao : (l.observacoes || '')}</div>
           </td>
           <td>${l.categoria || '—'}</td>
           <td>${formatarData(l.vencimento)}</td>
@@ -2540,7 +2541,7 @@ async function carregarContasReceber() {
 
   const { data: lancamentos, error } = await sb
     .from('lancamentos')
-    .select('*')
+    .select('*, parceiros(nome)')
     .eq('empresa_id', empresaId)
     .eq('tipo', 'receber')
     .order('vencimento', { ascending: true });
@@ -2566,8 +2567,8 @@ async function carregarContasReceber() {
       return `
         <tr data-status="${l.status}" data-id="${l.id}">
           <td>
-            <div class="td-main">${l.descricao}</div>
-            <div class="td-sub">${l.observacoes || ''}</div>
+            <div class="td-main">${l.parceiros?.nome || l.descricao}</div>
+            <div class="td-sub">${l.parceiros?.nome ? l.descricao : (l.observacoes || '')}</div>
           </td>
           <td>${formatarData(l.vencimento)}</td>
           <td>${diasCol}</td>
@@ -3731,7 +3732,7 @@ function verDetalheAuditoria(id) {
 let detalheLancamentoAtual = null; // { id, tipo, empresa_id }
 
 async function abrirDetalheLancamento(lancamentoId, tipo) {
-  const { data: l, error } = await sb.from('lancamentos').select('*').eq('id', lancamentoId).single();
+  const { data: l, error } = await sb.from('lancamentos').select('*, parceiros(nome)').eq('id', lancamentoId).single();
 
   if (error || !l) {
     showToast('Erro ao carregar lançamento.', 'error');
@@ -3745,6 +3746,7 @@ async function abrirDetalheLancamento(lancamentoId, tipo) {
     `${tipo === 'pagar' ? 'Conta a pagar' : 'Conta a receber'} · vencimento ${formatarData(l.vencimento)}`;
 
   document.getElementById('detalhe-info').innerHTML = `
+    ${l.parceiros?.nome ? `<div style="margin-bottom:8px"><strong>${tipo === 'pagar' ? 'Fornecedor' : 'Cliente'}:</strong> ${l.parceiros.nome}</div>` : ''}
     <div class="form-row">
       <div><strong>Valor:</strong> ${formatarMoeda(l.valor)}</div>
       <div><strong>Status:</strong> ${statusLabelMap[l.status] || l.status}</div>
@@ -4267,21 +4269,21 @@ async function exportarContasPagar() {
     return;
   }
 
-  const { data, error } = await sb.from('lancamentos').select('*').eq('empresa_id', empresaId).eq('tipo', 'pagar').order('vencimento');
+  const { data, error } = await sb.from('lancamentos').select('*, parceiros(nome)').eq('empresa_id', empresaId).eq('tipo', 'pagar').order('vencimento');
   if (error) {
     showToast('Erro ao exportar: ' + error.message, 'error');
     return;
   }
 
   const linhas = data.map(l => [
-    l.descricao, l.categoria || '', formatarData(l.vencimento), l.forma_pagamento || '',
+    l.parceiros?.nome || '', l.descricao, l.categoria || '', formatarData(l.vencimento), l.forma_pagamento || '',
     Number(l.valor).toFixed(2).replace('.', ','), statusLabelMap[l.status] || l.status,
     l.data_pagamento ? formatarData(l.data_pagamento) : ''
   ]);
 
   exportarCSV(
     `contas_a_pagar_${new Date().toISOString().slice(0, 10)}.csv`,
-    ['Descrição', 'Categoria', 'Vencimento', 'Forma de pagamento', 'Valor', 'Status', 'Data do pagamento'],
+    ['Fornecedor', 'Descrição', 'Categoria', 'Vencimento', 'Forma de pagamento', 'Valor', 'Status', 'Data do pagamento'],
     linhas
   );
   showToast('Exportado com sucesso!', 'success');
@@ -4294,21 +4296,21 @@ async function exportarContasReceber() {
     return;
   }
 
-  const { data, error } = await sb.from('lancamentos').select('*').eq('empresa_id', empresaId).eq('tipo', 'receber').order('vencimento');
+  const { data, error } = await sb.from('lancamentos').select('*, parceiros(nome)').eq('empresa_id', empresaId).eq('tipo', 'receber').order('vencimento');
   if (error) {
     showToast('Erro ao exportar: ' + error.message, 'error');
     return;
   }
 
   const linhas = data.map(l => [
-    l.descricao, l.categoria || '', formatarData(l.vencimento),
+    l.parceiros?.nome || '', l.descricao, l.categoria || '', formatarData(l.vencimento),
     Number(l.valor).toFixed(2).replace('.', ','), statusLabelMap[l.status] || l.status,
     l.data_pagamento ? formatarData(l.data_pagamento) : ''
   ]);
 
   exportarCSV(
     `contas_a_receber_${new Date().toISOString().slice(0, 10)}.csv`,
-    ['Descrição', 'Categoria', 'Vencimento', 'Valor', 'Status', 'Data do recebimento'],
+    ['Cliente', 'Descrição', 'Categoria', 'Vencimento', 'Valor', 'Status', 'Data do recebimento'],
     linhas
   );
   showToast('Exportado com sucesso!', 'success');
