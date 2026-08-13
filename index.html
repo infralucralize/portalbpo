@@ -1224,7 +1224,7 @@
     <div class="topbar">
       <div>
         <h1 id="screen-title">Dashboard KPI</h1>
-        <div class="subtitle" id="screen-subtitle">Visão consolidada — agosto/2026</div>
+        <div class="subtitle" id="screen-subtitle"></div>
       </div>
       <div class="topbar-right" style="position:relative">
         <div class="notification-btn" title="Notificações" onclick="toggleNotificacoesPanel()">
@@ -1334,7 +1334,7 @@
         <div class="card indicadores-table" style="margin-top:16px;">
           <div class="card-header">
             <h3>Indicadores gerenciais</h3>
-            <span class="card-link">Exportar relatório ↗</span>
+            <span class="card-link" onclick="exportarIndicadores()" style="cursor:pointer">Exportar relatório ↗</span>
           </div>
           <div class="table-wrapper">
             <table>
@@ -1392,7 +1392,7 @@
             <div class="subtitle" id="pagar-subtitle">18 lançamentos em aberto — R$ 128.450,00</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost">📄 Exportar</button>
+            <button class="btn ghost" onclick="exportarContasPagar()">📄 Exportar</button>
             <button class="btn can-create" onclick="openModal('modal-pagar')">+ Novo lançamento</button>
           </div>
         </div>
@@ -1436,7 +1436,7 @@
             <div class="subtitle" id="receber-subtitle">27 lançamentos em aberto — R$ 214.900,00</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost">📄 Exportar</button>
+            <button class="btn ghost" onclick="exportarContasReceber()">📄 Exportar</button>
             <button class="btn can-create" onclick="openModal('modal-receber')">+ Novo lançamento</button>
           </div>
         </div>
@@ -1475,11 +1475,17 @@
         <div class="toolbar">
           <div>
             <h2>Fluxo de Caixa</h2>
-            <div class="subtitle">Realizado × Projetado — próximos 30 dias</div>
+            <div class="subtitle" id="fluxo-subtitle">Realizado × Projetado — próximos 30 dias</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost">📊 Exportar Excel</button>
-            <button class="btn ghost">📅 Alterar período</button>
+            <button class="btn ghost" onclick="exportarFluxoCaixa()">📊 Exportar CSV</button>
+            <select id="fluxo-periodo-select" onchange="carregarFluxoCaixa(parseInt(this.value))" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px">
+              <option value="7">Próximos 7 dias</option>
+              <option value="14">Próximos 14 dias</option>
+              <option value="30" selected>Próximos 30 dias</option>
+              <option value="60">Próximos 60 dias</option>
+              <option value="90">Próximos 90 dias</option>
+            </select>
           </div>
         </div>
 
@@ -1500,7 +1506,7 @@
 
         <div class="card">
           <div class="card-header">
-            <h3>Projeção de saldo — próximos 30 dias</h3>
+            <h3 id="fluxo-chart-titulo">Projeção de saldo — próximos 30 dias</h3>
           </div>
           <div class="chart-area" id="flow-chart-big" style="height:180px;"></div>
           <div class="chart-legend" style="justify-content:center;gap:24px">
@@ -1601,7 +1607,7 @@
         <div class="toolbar">
           <div>
             <h2>Conciliação Bancária</h2>
-            <div class="subtitle">Conta Corrente — Banco do Brasil · Ag. 0042-1</div>
+            <div class="subtitle" id="conciliacao-subtitle">Extrato bancário × lançamentos internos</div>
           </div>
           <div class="toolbar-actions">
             <button class="btn ghost" onclick="carregarConciliacao()">🔄 Atualizar extrato</button>
@@ -2103,7 +2109,7 @@ function applyRolePermissions(role) {
 // NAVIGATION
 // ============================================
 const screenTitles = {
-  dashboard: ['Dashboard KPI', 'Visão consolidada — agosto/2026'],
+  dashboard: ['Dashboard KPI', ''], // subtítulo é calculado dinamicamente em navigate()
   pagar: ['Contas a Pagar', 'Controle de obrigações e aprovações'],
   receber: ['Contas a Receber', 'Controle de faturamento e inadimplência'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
@@ -2111,6 +2117,13 @@ const screenTitles = {
   empresas: ['Empresas', 'Gestão das empresas clientes'],
   usuarios: ['Usuários', 'Gestão de acessos e permissões'],
 };
+
+const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+function mesAnoAtualExtenso() {
+  const agora = new Date();
+  return `Visão consolidada — ${MESES_PT[agora.getMonth()]}/${agora.getFullYear()}`;
+}
 
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => navigate(item.dataset.screen));
@@ -2128,7 +2141,8 @@ function navigate(key) {
 
   if (screenTitles[key]) {
     document.getElementById('screen-title').textContent = screenTitles[key][0];
-    document.getElementById('screen-subtitle').textContent = screenTitles[key][1];
+    document.getElementById('screen-subtitle').textContent =
+      key === 'dashboard' ? mesAnoAtualExtenso() : screenTitles[key][1];
   }
 
   if (key === 'dashboard') carregarDashboard();
@@ -2302,6 +2316,8 @@ async function carregarDashboard() {
   const empresaId = empresaAtualId();
   if (!empresaId) return;
 
+  document.getElementById('screen-subtitle').textContent = mesAnoAtualExtenso();
+
   const { data: lancs, error } = await sb
     .from('lancamentos')
     .select('*')
@@ -2434,9 +2450,19 @@ function carregarIndicadores(lancs) {
     cicloAtual === null ? situacaoHtml('none') : situacaoHtml(cicloAtual <= 5 ? 'ok' : 'warn');
 }
 
-async function carregarFluxoCaixa() {
+let fluxoCaixaAtual = { dias: 30, entradasPrevistas: [], saidasPrevistas: [] }; // usado pela exportação
+
+async function carregarFluxoCaixa(dias) {
+  dias = dias || fluxoCaixaAtual.dias || 30;
+  fluxoCaixaAtual.dias = dias;
+
   const empresaId = empresaAtualId();
   if (!empresaId) return;
+
+  document.getElementById('fluxo-subtitle').textContent = `Realizado × Projetado — próximos ${dias} dias`;
+  document.getElementById('fluxo-chart-titulo').textContent = `Projeção de saldo — próximos ${dias} dias`;
+  const selPeriodo = document.getElementById('fluxo-periodo-select');
+  if (selPeriodo) selPeriodo.value = String(dias);
 
   const { data: lancs, error } = await sb
     .from('lancamentos')
@@ -2449,15 +2475,18 @@ async function carregarFluxoCaixa() {
   }
 
   const hoje = new Date();
-  const em30 = new Date(hoje.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const limite = new Date(hoje.getTime() + dias * 24 * 60 * 60 * 1000);
 
   const entradasPrevistas = lancs
-    .filter(l => l.tipo === 'receber' && !['recebido', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= em30)
+    .filter(l => l.tipo === 'receber' && !['recebido', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= limite)
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
 
   const saidasPrevistas = lancs
-    .filter(l => l.tipo === 'pagar' && !['pago', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= em30)
+    .filter(l => l.tipo === 'pagar' && !['pago', 'cancelado'].includes(l.status) && new Date(l.vencimento + 'T00:00:00') <= limite)
     .sort((a, b) => a.vencimento.localeCompare(b.vencimento));
+
+  fluxoCaixaAtual.entradasPrevistas = entradasPrevistas;
+  fluxoCaixaAtual.saidasPrevistas = saidasPrevistas;
 
   const totalEntradas = entradasPrevistas.reduce((s, l) => s + Number(l.valor), 0);
   const totalSaidas = saidasPrevistas.reduce((s, l) => s + Number(l.valor), 0);
@@ -2490,7 +2519,7 @@ async function carregarFluxoCaixa() {
       `).join('')
     : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhuma saída prevista</td></tr>';
 
-  buildFlowChartReal('flow-chart-big', 30, 160, lancs);
+  buildFlowChartReal('flow-chart-big', dias > 60 ? 60 : dias, 160, lancs);
 }
 
 async function carregarConciliacao() {
@@ -2499,6 +2528,12 @@ async function carregarConciliacao() {
   if (!empresaId) return;
 
   container.innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8">Carregando...</div>';
+
+  // Nome da empresa no subtítulo (em vez do nome de banco fixo que havia antes)
+  const sel = document.getElementById('empresa-select');
+  const nomeEmpresaSelecionada = sel.selectedOptions[0]?.textContent || '';
+  document.getElementById('conciliacao-subtitle').textContent =
+    nomeEmpresaSelecionada ? `${nomeEmpresaSelecionada} — extrato × lançamentos internos` : 'Extrato bancário × lançamentos internos';
 
   const { data: itens, error } = await sb
     .from('conciliacao_bancaria')
@@ -3327,6 +3362,116 @@ function marcarComoPago(lancamentoId) {
 // Mesma lógica, para o lado de Contas a Receber
 function marcarComoRecebido(lancamentoId) {
   abrirModalDataPagamento(lancamentoId, 'recebido', 'Data em que o valor foi recebido', 'receber');
+}
+
+// ============================================
+// EXPORTAÇÃO CSV
+// ============================================
+
+// Gera e baixa um CSV a partir de cabeçalhos + linhas.
+// Usa ; como separador e BOM UTF-8 para abrir certinho no Excel em pt-BR.
+function exportarCSV(nomeArquivo, cabecalhos, linhas) {
+  const escapar = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const csv = [cabecalhos, ...linhas].map(linha => linha.map(escapar).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeArquivo;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function exportarContasPagar() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) {
+    showToast('Selecione uma empresa.', 'error');
+    return;
+  }
+
+  const { data, error } = await sb.from('lancamentos').select('*').eq('empresa_id', empresaId).eq('tipo', 'pagar').order('vencimento');
+  if (error) {
+    showToast('Erro ao exportar: ' + error.message, 'error');
+    return;
+  }
+
+  const linhas = data.map(l => [
+    l.descricao, l.categoria || '', formatarData(l.vencimento), l.forma_pagamento || '',
+    Number(l.valor).toFixed(2).replace('.', ','), statusLabelMap[l.status] || l.status,
+    l.data_pagamento ? formatarData(l.data_pagamento) : ''
+  ]);
+
+  exportarCSV(
+    `contas_a_pagar_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Descrição', 'Categoria', 'Vencimento', 'Forma de pagamento', 'Valor', 'Status', 'Data do pagamento'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
+}
+
+async function exportarContasReceber() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) {
+    showToast('Selecione uma empresa.', 'error');
+    return;
+  }
+
+  const { data, error } = await sb.from('lancamentos').select('*').eq('empresa_id', empresaId).eq('tipo', 'receber').order('vencimento');
+  if (error) {
+    showToast('Erro ao exportar: ' + error.message, 'error');
+    return;
+  }
+
+  const linhas = data.map(l => [
+    l.descricao, l.categoria || '', formatarData(l.vencimento),
+    Number(l.valor).toFixed(2).replace('.', ','), statusLabelMap[l.status] || l.status,
+    l.data_pagamento ? formatarData(l.data_pagamento) : ''
+  ]);
+
+  exportarCSV(
+    `contas_a_receber_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Descrição', 'Categoria', 'Vencimento', 'Valor', 'Status', 'Data do recebimento'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
+}
+
+function exportarFluxoCaixa() {
+  const { entradasPrevistas, saidasPrevistas, dias } = fluxoCaixaAtual;
+
+  if (!entradasPrevistas.length && !saidasPrevistas.length) {
+    showToast('Nada para exportar nesse período.', 'error');
+    return;
+  }
+
+  const linhas = [
+    ...entradasPrevistas.map(l => ['Entrada', l.descricao, formatarData(l.vencimento), Number(l.valor).toFixed(2).replace('.', ',')]),
+    ...saidasPrevistas.map(l => ['Saída', l.descricao, formatarData(l.vencimento), Number(l.valor).toFixed(2).replace('.', ',')])
+  ];
+
+  exportarCSV(
+    `fluxo_de_caixa_${dias}dias_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Tipo', 'Descrição', 'Vencimento', 'Valor'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
+}
+
+function exportarIndicadores() {
+  const linhas = [
+    ['Prazo médio de recebimento (PMR)', document.getElementById('ind-pmr-atual').textContent, document.getElementById('ind-pmr-anterior').textContent, '≤ 30 dias'],
+    ['Prazo médio de pagamento (PMP)', document.getElementById('ind-pmp-atual').textContent, document.getElementById('ind-pmp-anterior').textContent, '30-35 dias'],
+    ['Ciclo financeiro', document.getElementById('ind-ciclo-atual').textContent, document.getElementById('ind-ciclo-anterior').textContent, '≤ 5 dias'],
+  ];
+
+  exportarCSV(
+    `indicadores_gerenciais_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Indicador', 'Valor atual', 'Mês anterior', 'Meta'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
 }
 
 // ============================================
