@@ -8,32 +8,41 @@
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* ===== MARCA (hues não alterados) ===== */
-    --navy: var(--navy);
-    --teal: var(--teal);
-    --cyan: #92DCE5;
+    /* =========================================================
+       PALETA INSTITUCIONAL LUCRALIZE — valores originais da marca.
+       Nenhuma cor foi substituída por equivalente "acessível":
+       a identidade da marca manda aqui.
+    ========================================================= */
+    --navy:  #0E1428;
+    --teal:  #0C7488;
+    --cyan:  #92DCE5;
+    --red:   #F72642;
+    --green: #1F9D6B;
+    --amber: #D98A1E;
 
-    /* ===== SUPERFÍCIES ===== */
-    --bg: #F6F7F9;
+    /* ===== SUPERFÍCIES (neutros originais) ===== */
+    --bg: #F5F7F8;
+    --card: #FFFFFF;
     --surface: #FFFFFF;
-    --surface-2: #FBFCFD;
-    --border: #E4E8EC;
+    --surface-2: #FAFBFC;
+    --border: #E3E7EA;
     --border-strong: #CFD6DD;
 
-    /* ===== TEXTO (3 níveis) ===== */
-    --text: var(--text);
-    --text-muted: #5C6875;
-    --text-subtle: #8A96A3;
+    /* ===== TEXTO (3 níveis, originais + 1 nível sutil novo) ===== */
+    --text-main: #17202B;
+    --text: #17202B;
+    --text-muted: #6B7686;
+    --text-subtle: #98A2AE;
 
-    /* ===== SEMÂNTICA (par cor/fundo) ===== */
-    --success: #157F56;   --success-bg: #E8F5EF;
-    --danger:  #C81232;   --danger-bg:  #FDECEF;
-    --warning: #A96A0C;   --warning-bg: #FDF3E3;
-    --info: var(--teal);  --info-bg:    #E9F5F8;
+    /* ===== SEMÂNTICA: usa as cores da marca + fundo claro derivado ===== */
+    --success: var(--green);  --success-bg: #EAF7F1;
+    --danger:  var(--red);    --danger-bg:  #FEECEF;
+    --warning: var(--amber);  --warning-bg: #FDF4E6;
+    --info:    var(--teal);   --info-bg:    #E9F5F8;
 
-    /* Cores saturadas: SOMENTE preenchimento de gráfico (não passam AA como texto) */
-    --chart-red: #F72642;
-    --chart-green: var(--chart-green);
+    /* Preenchimento de gráfico: mesmas cores da marca */
+    --chart-red: var(--red);
+    --chart-green: var(--green);
 
     /* ===== ESPAÇAMENTO (escala 4pt) ===== */
     --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
@@ -50,15 +59,6 @@
     --focus: 0 0 0 3px rgba(12,116,136,.28);
     --t-fast: 120ms cubic-bezier(.2,0,.4,1);
     --t: 180ms cubic-bezier(.2,0,.4,1);
-
-    /* ===== ALIASES RETROCOMPATÍVEIS =====
-       Mantidos porque há 100+ referências no CSS e nos style="" inline.
-       Apontam para os tokens novos, então a migração é gradual e segura. */
-    --card: var(--surface);
-    --text-main: var(--text);
-    --red: var(--danger);      /* acessível como texto (AA) */
-    --green: var(--success);   /* acessível como texto (AA) */
-    --amber: var(--warning);
   }
 
   /* ===== TIPOGRAFIA: escala explícita ===== */
