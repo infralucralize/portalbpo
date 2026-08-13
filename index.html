@@ -1203,6 +1203,10 @@
         <div class="nav-icon">📁</div>
         Documentos
       </div>
+      <div class="nav-item" data-screen="recorrencias">
+        <div class="nav-icon">🔁</div>
+        Recorrências
+      </div>
       <div class="nav-section-label">Análise</div>
       <div class="nav-item" data-screen="fluxo">
         <div class="nav-icon">∿</div>
@@ -1709,6 +1713,96 @@
               </thead>
               <tbody>
                 <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ RECORRÊNCIAS ============ -->
+      <div class="screen" id="screen-recorrencias">
+        <div class="toolbar">
+          <div>
+            <h2>Recorrências</h2>
+            <div class="subtitle" id="recorrencias-subtitle">Lançamentos que se repetem todo mês</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn can-create" onclick="abrirFormNovaRecorrencia()">+ Nova recorrência</button>
+          </div>
+        </div>
+
+        <div class="card" id="form-nova-recorrencia" style="display:none">
+          <div class="card-header"><h3 id="recorrencia-form-titulo">Nova recorrência</h3></div>
+          <input type="hidden" id="recorrencia-form-id" value="">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo</label>
+              <select id="recorrencia-form-tipo">
+                <option value="pagar">Contas a Pagar</option>
+                <option value="receber">Contas a Receber</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Descrição</label>
+              <input type="text" id="recorrencia-form-descricao" placeholder="Ex: Aluguel do escritório">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Valor (R$)</label>
+              <input type="number" id="recorrencia-form-valor" placeholder="0,00" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+              <label>Dia do vencimento</label>
+              <input type="number" id="recorrencia-form-dia" placeholder="Ex: 10" min="1" max="31">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Categoria (opcional)</label>
+              <select id="recorrencia-form-categoria">
+                <option value="">Selecione</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Fornecedor/Cliente (opcional)</label>
+              <select id="recorrencia-form-parceiro">
+                <option value="">Nenhum</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Início (a partir de quando gerar)</label>
+              <input type="date" id="recorrencia-form-inicio">
+            </div>
+            <div class="form-group">
+              <label>Fim (opcional)</label>
+              <input type="date" id="recorrencia-form-fim">
+            </div>
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovaRecorrencia()">Cancelar</button>
+            <button class="btn" onclick="salvarRecorrencia()">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="recorrencias-table">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                  <th>Dia</th>
+                  <th>Status</th>
+                  <th>Última geração</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2452,6 +2546,7 @@ function renderizarAppLogado() {
   atualizarTodosBadges();
   carregarNotificacoes();
   iniciarPollingNotificacoes();
+  gerarLancamentosRecorrentesPendentes();
   showToast(`Bem-vindo(a), ${user.name}!`, 'info');
 }
 
@@ -2505,6 +2600,7 @@ const screenTitles = {
   parceiros: ['Fornecedores/Clientes', 'Cadastro de fornecedores e clientes'],
   categorias: ['Categorias', 'Plano de contas da empresa'],
   documentos: ['Documentos', 'Guias, balanços, contratos e outros arquivos gerais'],
+  recorrencias: ['Recorrências', 'Lançamentos que se repetem todo mês'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
@@ -2545,6 +2641,7 @@ function navigate(key) {
   if (key === 'parceiros') carregarParceiros();
   if (key === 'categorias') carregarCategorias();
   if (key === 'documentos') carregarDocumentosGerais();
+  if (key === 'recorrencias') carregarRecorrencias();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
@@ -4354,6 +4451,214 @@ async function popularSeletorParceiros(tipoLancamento) {
 }
 
 // ============================================
+// RECORRÊNCIAS
+// ============================================
+let ultimasRecorrenciasCarregadas = [];
+
+async function carregarRecorrencias() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#recorrencias-table tbody');
+  if (!empresaId) return;
+
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data, error } = await sb.from('recorrencias').select('*').eq('empresa_id', empresaId).order('descricao');
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  ultimasRecorrenciasCarregadas = data;
+  document.getElementById('recorrencias-subtitle').textContent = `${data.length} recorrência(s) cadastrada(s)`;
+
+  tbody.innerHTML = data.length
+    ? data.map(r => `
+        <tr>
+          <td>${r.descricao}</td>
+          <td>${r.tipo === 'pagar' ? 'A Pagar' : 'A Receber'}</td>
+          <td>${formatarMoeda(r.valor)}</td>
+          <td>Dia ${r.dia_vencimento}</td>
+          <td><span class="status-pill ${r.ativa ? 'status-pago' : 'status-atrasado'}">${r.ativa ? 'Ativa' : 'Pausada'}</span></td>
+          <td>${r.ultima_geracao ? formatarData(r.ultima_geracao) : 'Nunca gerado'}</td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="action-btn view can-create" onclick="abrirFormEdicaoRecorrencia('${r.id}')">Editar</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirRecorrencia('${r.id}', '${r.descricao.replace(/'/g, "\\'")}')">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma recorrência cadastrada</td></tr>';
+
+  if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+async function popularSeletoresRecorrencia() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) return;
+
+  const { data: categorias } = await sb.from('categorias').select('nome').eq('empresa_id', empresaId).eq('ativa', true).order('nome');
+  document.getElementById('recorrencia-form-categoria').innerHTML =
+    '<option value="">Selecione</option>' + (categorias || []).map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+
+  const { data: parceiros } = await sb.from('parceiros').select('id, nome').eq('empresa_id', empresaId).eq('ativo', true).order('nome');
+  document.getElementById('recorrencia-form-parceiro').innerHTML =
+    '<option value="">Nenhum</option>' + (parceiros || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+}
+
+async function abrirFormNovaRecorrencia() {
+  await popularSeletoresRecorrencia();
+  document.getElementById('recorrencia-form-id').value = '';
+  document.getElementById('recorrencia-form-titulo').textContent = 'Nova recorrência';
+  document.getElementById('recorrencia-form-tipo').value = 'pagar';
+  document.getElementById('recorrencia-form-descricao').value = '';
+  document.getElementById('recorrencia-form-valor').value = '';
+  document.getElementById('recorrencia-form-dia').value = '';
+  document.getElementById('recorrencia-form-categoria').value = '';
+  document.getElementById('recorrencia-form-parceiro').value = '';
+  document.getElementById('recorrencia-form-inicio').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('recorrencia-form-fim').value = '';
+  document.getElementById('form-nova-recorrencia').style.display = 'block';
+}
+
+async function abrirFormEdicaoRecorrencia(id) {
+  const r = ultimasRecorrenciasCarregadas.find(x => x.id === id);
+  if (!r) return;
+
+  await popularSeletoresRecorrencia();
+  document.getElementById('recorrencia-form-id').value = r.id;
+  document.getElementById('recorrencia-form-titulo').textContent = `Editando: ${r.descricao}`;
+  document.getElementById('recorrencia-form-tipo').value = r.tipo;
+  document.getElementById('recorrencia-form-descricao').value = r.descricao;
+  document.getElementById('recorrencia-form-valor').value = r.valor;
+  document.getElementById('recorrencia-form-dia').value = r.dia_vencimento;
+  document.getElementById('recorrencia-form-categoria').value = r.categoria || '';
+  document.getElementById('recorrencia-form-parceiro').value = r.parceiro_id || '';
+  document.getElementById('recorrencia-form-inicio').value = r.data_inicio;
+  document.getElementById('recorrencia-form-fim').value = r.data_fim || '';
+  document.getElementById('form-nova-recorrencia').style.display = 'block';
+  document.getElementById('form-nova-recorrencia').scrollIntoView({ behavior: 'smooth' });
+}
+
+function fecharFormNovaRecorrencia() {
+  document.getElementById('form-nova-recorrencia').style.display = 'none';
+}
+
+async function salvarRecorrencia() {
+  const id = document.getElementById('recorrencia-form-id').value;
+  const tipo = document.getElementById('recorrencia-form-tipo').value;
+  const descricao = document.getElementById('recorrencia-form-descricao').value.trim();
+  const valorStr = document.getElementById('recorrencia-form-valor').value;
+  const diaStr = document.getElementById('recorrencia-form-dia').value;
+  const categoria = document.getElementById('recorrencia-form-categoria').value || null;
+  const parceiroId = document.getElementById('recorrencia-form-parceiro').value || null;
+  const dataInicio = document.getElementById('recorrencia-form-inicio').value;
+  const dataFim = document.getElementById('recorrencia-form-fim').value || null;
+
+  if (!descricao || !valorStr || !diaStr || !dataInicio) {
+    showToast('Preencha descrição, valor, dia do vencimento e data de início.', 'error');
+    return;
+  }
+
+  const valor = parseFloat(valorStr);
+  const dia = parseInt(diaStr);
+  if (isNaN(valor) || valor <= 0 || isNaN(dia) || dia < 1 || dia > 31) {
+    showToast('Valor ou dia do vencimento inválido.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  const dados = {
+    empresa_id: empresaId, tipo, descricao, valor, dia_vencimento: dia,
+    categoria, parceiro_id: parceiroId, data_inicio: dataInicio, data_fim: dataFim
+  };
+
+  let erro;
+  if (id) {
+    ({ error: erro } = await sb.from('recorrencias').update(dados).eq('id', id));
+  } else {
+    dados.criado_por = currentUser.id;
+    ({ error: erro } = await sb.from('recorrencias').insert(dados));
+  }
+
+  if (erro) {
+    showToast('Erro ao salvar: ' + erro.message, 'error');
+    return;
+  }
+
+  showToast(id ? 'Recorrência atualizada!' : 'Recorrência criada!', 'success');
+  fecharFormNovaRecorrencia();
+  carregarRecorrencias();
+}
+
+async function excluirRecorrencia(id, descricao) {
+  if (!confirm(`Excluir a recorrência "${descricao}"? Lançamentos já gerados por ela não serão apagados.`)) return;
+
+  const { error } = await sb.from('recorrencias').delete().eq('id', id);
+  if (error) {
+    showToast('Erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Recorrência excluída!', 'success');
+  carregarRecorrencias();
+}
+
+// ============================================
+// GERAÇÃO AUTOMÁTICA (lazy): roda uma vez por login, checando
+// se alguma recorrência ainda não gerou o lançamento deste mês
+// ============================================
+async function gerarLancamentosRecorrentesPendentes() {
+  const hoje = new Date();
+  const anoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+
+  const { data: recorrencias, error } = await sb
+    .from('recorrencias')
+    .select('*')
+    .eq('ativa', true)
+    .lte('data_inicio', hoje.toISOString().slice(0, 10));
+
+  if (error || !recorrencias || !recorrencias.length) return;
+
+  let gerados = 0;
+
+  for (const r of recorrencias) {
+    if (r.data_fim && r.data_fim < hoje.toISOString().slice(0, 10)) continue;
+
+    const jaGerouEsseMes = r.ultima_geracao && r.ultima_geracao.slice(0, 7) === anoMes;
+    if (jaGerouEsseMes) continue;
+
+    // Ajusta o dia caso o mês não tenha esse dia (ex: dia 31 em fevereiro)
+    const ultimoDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    const diaAjustado = Math.min(r.dia_vencimento, ultimoDiaDoMes);
+    const vencimento = `${anoMes}-${String(diaAjustado).padStart(2, '0')}`;
+
+    const { error: insertError } = await sb.from('lancamentos').insert({
+      empresa_id: r.empresa_id,
+      tipo: r.tipo,
+      descricao: r.descricao,
+      valor: r.valor,
+      vencimento: vencimento,
+      categoria: r.categoria,
+      forma_pagamento: r.forma_pagamento,
+      parceiro_id: r.parceiro_id,
+      recorrencia_id: r.id,
+      criado_por: currentUser.id
+    });
+
+    if (!insertError) {
+      await sb.from('recorrencias').update({ ultima_geracao: hoje.toISOString().slice(0, 10) }).eq('id', r.id);
+      gerados++;
+    }
+  }
+
+  if (gerados > 0) {
+    showToast(`${gerados} lançamento(s) recorrente(s) gerado(s) automaticamente este mês.`, 'info');
+  }
+}
+
+// ============================================
 // DOCUMENTOS GERAIS (não vinculados a um lançamento específico)
 // ============================================
 let ultimosDocumentosCarregados = [];
@@ -4833,6 +5138,7 @@ function changeEmpresa(val) {
   if (screenAtiva && screenAtiva.id === 'screen-parceiros') carregarParceiros();
   if (screenAtiva && screenAtiva.id === 'screen-categorias') carregarCategorias();
   if (screenAtiva && screenAtiva.id === 'screen-documentos') carregarDocumentosGerais();
+  if (screenAtiva && screenAtiva.id === 'screen-recorrencias') carregarRecorrencias();
   atualizarTodosBadges();
 }
 
