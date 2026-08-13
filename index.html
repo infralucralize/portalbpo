@@ -3645,6 +3645,8 @@ async function carregarEmpresas() {
     sel.innerHTML = '<option value="">Selecione uma empresa</option>' +
       empresas.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
   }
+
+  if (currentUser) applyRolePermissions(currentUser.role);
 }
 
 function abrirFormNovaEmpresa() {
