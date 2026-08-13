@@ -415,15 +415,56 @@
   .notification-badge {
     position: absolute;
     top: -4px; right: -4px;
-    width: 14px; height: 14px;
+    min-width: 14px; height: 14px;
+    padding: 0 3px;
     background: var(--red);
-    border-radius: 50%;
+    border-radius: 8px;
     font-size: 8px;
     color: #fff;
     font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     border: 2px solid #fff;
   }
+
+  .notificacoes-panel {
+    position: absolute;
+    top: 46px; right: 0;
+    width: 340px;
+    max-height: 420px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+  }
+  .notificacoes-panel.open { display: flex; }
+  .notificacoes-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .notificacoes-panel-header button {
+    background: none; border: none; color: var(--teal);
+    font-size: 12px; cursor: pointer; font-weight: 600;
+  }
+  .notificacoes-lista { overflow-y: auto; max-height: 360px; }
+  .notificacao-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #F0F2F3;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .notificacao-item:hover { background: #F9FAFA; }
+  .notificacao-item.nao-lida { background: rgba(12,116,136,0.05); }
+  .notificacao-item.nao-lida .notificacao-titulo::before {
+    content: '●'; color: var(--teal); margin-right: 5px; font-size: 9px;
+  }
+  .notificacao-titulo { font-weight: 700; margin-bottom: 2px; }
+  .notificacao-mensagem { color: var(--text-muted); }
+  .notificacao-data { color: #B0B8BA; font-size: 10px; margin-top: 3px; }
 
   .user-chip {
     display: flex;
@@ -1139,12 +1180,12 @@
       <div class="nav-item" data-screen="pagar">
         <div class="nav-icon">↧</div>
         Contas a Pagar
-        <span class="nav-badge" id="badge-pagar">3</span>
+        <span class="nav-badge" id="badge-pagar" style="display:none">0</span>
       </div>
       <div class="nav-item" data-screen="receber">
         <div class="nav-icon">↥</div>
         Contas a Receber
-        <span class="nav-badge" id="badge-receber">2</span>
+        <span class="nav-badge" id="badge-receber" style="display:none">0</span>
       </div>
       <div class="nav-section-label">Análise</div>
       <div class="nav-item" data-screen="fluxo">
@@ -1154,7 +1195,7 @@
       <div class="nav-item" data-screen="conciliacao">
         <div class="nav-icon">⇄</div>
         Conciliação Bancária
-        <span class="nav-badge" id="badge-conc">3</span>
+        <span class="nav-badge" id="badge-conc" style="display:none">0</span>
       </div>
       <div class="nav-section-label admin-only" style="display:none">Administração</div>
       <div class="nav-item admin-only" data-screen="empresas" style="display:none">
@@ -1185,11 +1226,22 @@
         <h1 id="screen-title">Dashboard KPI</h1>
         <div class="subtitle" id="screen-subtitle">Visão consolidada — agosto/2026</div>
       </div>
-      <div class="topbar-right">
-        <div class="notification-btn" title="Notificações">
+      <div class="topbar-right" style="position:relative">
+        <div class="notification-btn" title="Notificações" onclick="toggleNotificacoesPanel()">
           🔔
-          <div class="notification-badge">5</div>
+          <div class="notification-badge" id="notification-badge" style="display:none">0</div>
         </div>
+
+        <div class="notificacoes-panel" id="notificacoes-panel">
+          <div class="notificacoes-panel-header">
+            <strong>Notificações</strong>
+            <button onclick="marcarTodasNotificacoesComoLidas()">Marcar todas como lidas</button>
+          </div>
+          <div class="notificacoes-lista" id="notificacoes-lista">
+            <div style="padding:16px;text-align:center;color:#94A3B8;font-size:12px">Carregando...</div>
+          </div>
+        </div>
+
         <div class="user-chip" id="user-chip">
           <div class="avatar" id="user-avatar">CG</div>
           <div>
@@ -2007,12 +2059,16 @@ function renderizarAppLogado() {
   applyRolePermissions(user.role);
   buildCharts();
   carregarDashboard();
+  atualizarTodosBadges();
+  carregarNotificacoes();
+  iniciarPollingNotificacoes();
   showToast(`Bem-vindo(a), ${user.name}!`, 'info');
 }
 
 async function handleLogout() {
   await sb.auth.signOut();
   currentUser = null;
+  if (notificacoesPollingId) clearInterval(notificacoesPollingId);
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 }
@@ -2167,6 +2223,11 @@ async function carregarContasPagar() {
   document.getElementById('pagar-subtitle').textContent =
     `${emAberto.length} lançamentos em aberto — ${formatarMoeda(totalEmAberto)}`;
 
+  // Badge do menu: conta o que precisa de ação (aguardando aprovação + atrasado),
+  // não tudo que está "em aberto" (que é fluxo normal, sem urgência)
+  const precisaAcao = lancamentos.filter(l => l.status === 'aguardando_aprovacao' || l.status === 'atrasado');
+  atualizarBadgeMenu('badge-pagar', precisaAcao.length);
+
   // Reaplica permissões (os botões novos vieram sempre visíveis por padrão)
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -2231,6 +2292,10 @@ async function carregarContasReceber() {
   const totalEmAberto = emAberto.reduce((soma, l) => soma + Number(l.valor), 0);
   document.getElementById('receber-subtitle').textContent =
     `${emAberto.length} lançamentos em aberto — ${formatarMoeda(totalEmAberto)}`;
+
+  // Badge do menu: aguardando aprovação + inadimplente (precisa de ação/cobrança)
+  const precisaAcao = lancamentos.filter(l => l.status === 'aguardando_aprovacao' || l.status === 'inadimplente');
+  atualizarBadgeMenu('badge-receber', precisaAcao.length);
 }
 
 async function carregarDashboard() {
@@ -2461,6 +2526,7 @@ async function carregarConciliacao() {
   const saldoExtrato = itens.reduce((s, i) => s + Number(i.valor), 0);
 
   document.getElementById('conc-kpi-pendentes').textContent = pendentes.length;
+  atualizarBadgeMenu('badge-conc', pendentes.length);
   document.getElementById('conc-kpi-mes').textContent = conciliadosMes.length;
   document.getElementById('conc-kpi-taxa').textContent = `${taxaConciliacao.toFixed(0)}% taxa de conciliação`;
   document.getElementById('conc-kpi-saldo').textContent = formatarMoeda(saldoExtrato);
@@ -3313,6 +3379,107 @@ function changeEmpresa(val) {
   if (screenAtiva && screenAtiva.id === 'screen-receber') carregarContasReceber();
   if (screenAtiva && screenAtiva.id === 'screen-fluxo') carregarFluxoCaixa();
   if (screenAtiva && screenAtiva.id === 'screen-conciliacao') carregarConciliacao();
+  atualizarTodosBadges();
+}
+
+// ============================================
+// BADGES DO MENU (reais, calculados a partir do banco)
+// ============================================
+function atualizarBadgeMenu(id, count) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = count;
+  el.style.display = count > 0 ? '' : 'none';
+}
+
+// Recalcula os 3 badges do menu sem precisar renderizar as telas inteiras
+// (usado no login e ao trocar de empresa, quando a tela ainda não foi aberta)
+async function atualizarTodosBadges() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) return;
+
+  const { data: lancs } = await sb.from('lancamentos').select('tipo, status').eq('empresa_id', empresaId);
+  if (lancs) {
+    const pagarAcao = lancs.filter(l => l.tipo === 'pagar' && (l.status === 'aguardando_aprovacao' || l.status === 'atrasado')).length;
+    const receberAcao = lancs.filter(l => l.tipo === 'receber' && (l.status === 'aguardando_aprovacao' || l.status === 'inadimplente')).length;
+    atualizarBadgeMenu('badge-pagar', pagarAcao);
+    atualizarBadgeMenu('badge-receber', receberAcao);
+  }
+
+  const { data: conc } = await sb.from('conciliacao_bancaria').select('status').eq('empresa_id', empresaId);
+  if (conc) {
+    atualizarBadgeMenu('badge-conc', conc.filter(c => c.status === 'pendente').length);
+  }
+}
+
+// ============================================
+// NOTIFICAÇÕES
+// ============================================
+let notificacoesPollingId = null;
+
+function iniciarPollingNotificacoes() {
+  if (notificacoesPollingId) clearInterval(notificacoesPollingId);
+  // Verifica novas notificações a cada 30 segundos
+  notificacoesPollingId = setInterval(carregarNotificacoes, 30000);
+}
+
+async function carregarNotificacoes() {
+  if (!currentUser) return;
+
+  const { data: notificacoes, error } = await sb
+    .from('notificacoes')
+    .select('*')
+    .eq('perfil_id', currentUser.id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+
+  if (error) {
+    console.error('Erro ao carregar notificações:', error.message);
+    return;
+  }
+
+  const naoLidas = notificacoes.filter(n => !n.lida).length;
+  atualizarBadgeMenu('notification-badge', naoLidas);
+
+  const lista = document.getElementById('notificacoes-lista');
+  if (!notificacoes.length) {
+    lista.innerHTML = '<div style="padding:16px;text-align:center;color:#94A3B8;font-size:12px">Nenhuma notificação ainda.</div>';
+    return;
+  }
+
+  lista.innerHTML = notificacoes.map(n => `
+    <div class="notificacao-item ${n.lida ? '' : 'nao-lida'}" onclick="marcarNotificacaoComoLida('${n.id}')">
+      <div class="notificacao-titulo">${n.titulo}</div>
+      <div class="notificacao-mensagem">${n.mensagem}</div>
+      <div class="notificacao-data">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+    </div>
+  `).join('');
+}
+
+function toggleNotificacoesPanel() {
+  const painel = document.getElementById('notificacoes-panel');
+  painel.classList.toggle('open');
+  if (painel.classList.contains('open')) carregarNotificacoes();
+}
+
+// Fecha o painel se clicar fora dele
+document.addEventListener('click', (e) => {
+  const painel = document.getElementById('notificacoes-panel');
+  const botao = document.querySelector('.notification-btn');
+  if (painel && painel.classList.contains('open') && !painel.contains(e.target) && !botao.contains(e.target)) {
+    painel.classList.remove('open');
+  }
+});
+
+async function marcarNotificacaoComoLida(id) {
+  await sb.from('notificacoes').update({ lida: true }).eq('id', id);
+  carregarNotificacoes();
+}
+
+async function marcarTodasNotificacoesComoLidas() {
+  if (!currentUser) return;
+  await sb.from('notificacoes').update({ lida: true }).eq('perfil_id', currentUser.id).eq('lida', false);
+  carregarNotificacoes();
 }
 
 // ============================================
