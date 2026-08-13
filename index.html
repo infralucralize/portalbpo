@@ -2542,7 +2542,7 @@ function renderizarAppLogado() {
 
   applyRolePermissions(user.role);
   buildCharts();
-  carregarDashboard();
+  navigate('dashboard');
   atualizarTodosBadges();
   carregarNotificacoes();
   iniciarPollingNotificacoes();
@@ -2811,8 +2811,6 @@ async function carregarContasReceber() {
 async function carregarDashboard() {
   const empresaId = empresaAtualId();
   if (!empresaId) return;
-
-  document.getElementById('screen-subtitle').textContent = mesAnoAtualExtenso();
 
   const { data: lancs, error } = await sb
     .from('lancamentos')
