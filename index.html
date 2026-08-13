@@ -2309,6 +2309,12 @@
               <option value="conciliacao_bancaria">Conciliação Bancária</option>
               <option value="empresas">Empresas</option>
               <option value="perfis">Usuários</option>
+              <option value="parceiros">Fornecedores/Clientes</option>
+              <option value="categorias">Categorias</option>
+              <option value="contas_bancarias">Contas Bancárias</option>
+              <option value="recorrencias">Recorrências</option>
+              <option value="prazos_fiscais">Prazos Fiscais</option>
+              <option value="anexos">Anexos/Documentos</option>
             </select>
           </div>
         </div>
@@ -2894,6 +2900,7 @@ async function carregarContasPagar() {
               ${podeAprovar ? `<button class="action-btn approve can-approve" onclick="aprovarLancamento('${l.id}')">✓ Aprovar</button>` : ''}
               ${podePagar ? `<button class="action-btn approve can-approve" onclick="marcarComoPago('${l.id}')">✓ Marcar como pago</button>` : ''}
               <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'pagar')">Ver</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', '${l.descricao.replace(/'/g, "\\'")}', 'pagar')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -2966,6 +2973,7 @@ async function carregarContasReceber() {
             <div style="display:flex;gap:5px">
               ${podeReceber ? `<button class="action-btn approve can-approve" onclick="marcarComoRecebido('${l.id}')">✓ Marcar como recebido</button>` : ''}
               <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'receber')">Ver</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', '${l.descricao.replace(/'/g, "\\'")}', 'receber')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -4143,6 +4151,12 @@ const TABELA_LABEL = {
   conciliacao_bancaria: 'Conciliação',
   empresas: 'Empresa',
   perfis: 'Usuário',
+  parceiros: 'Fornecedor/Cliente',
+  categorias: 'Categoria',
+  contas_bancarias: 'Conta Bancária',
+  recorrencias: 'Recorrência',
+  prazos_fiscais: 'Prazo Fiscal',
+  anexos: 'Anexo/Documento',
 };
 
 // Nome da tabela pra exibição — lançamentos ganham label contextual (Pagar/Receber)
@@ -4636,6 +4650,36 @@ function marcarComoPago(lancamentoId) {
 // Mesma lógica, para o lado de Contas a Receber
 function marcarComoRecebido(lancamentoId) {
   abrirModalDataPagamento(lancamentoId, 'recebido', 'Data em que o valor foi recebido', 'receber');
+}
+
+// Exclusão de lançamento individual. Diferente da exclusão de empresa,
+// não gera PDF separado — o log de Auditoria já guarda automaticamente
+// o registro completo (JSON) do lançamento excluído, incluindo quem
+// fez e quando, então o backup já existe por padrão.
+function confirmarExclusaoLancamento(id, descricao, tipo) {
+  const confirmado = confirm(
+    `⚠️ Excluir "${descricao}"?\n\n` +
+    `Essa ação não pode ser desfeita. O registro completo fica salvo ` +
+    `no histórico de Auditoria, mas o lançamento sai definitivamente da lista.\n\n` +
+    `Deseja continuar?`
+  );
+
+  if (confirmado) {
+    excluirLancamento(id, tipo);
+  }
+}
+
+async function excluirLancamento(id, tipo) {
+  const { error } = await sb.from('lancamentos').delete().eq('id', id);
+
+  if (error) {
+    showToast('Erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Lançamento excluído com sucesso.', 'success');
+  if (tipo === 'pagar') carregarContasPagar();
+  else carregarContasReceber();
 }
 
 // ============================================
