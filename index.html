@@ -2548,10 +2548,20 @@ async function renderizarAppLogado() {
   // Espera a geração de recorrências terminar ANTES de buscar
   // notificações/badges, senão a notificação do lançamento recém-criado
   // não aparece até a próxima verificação (30s depois)
-  await gerarLancamentosRecorrentesPendentes();
+  const gerado = await gerarLancamentosRecorrentesPendentes();
   atualizarTodosBadges();
   carregarNotificacoes();
   iniciarPollingNotificacoes();
+
+  // Se algo foi gerado, já leva direto pra tela certa (Pagar/Receber),
+  // trocando a empresa selecionada se necessário
+  if (gerado) {
+    const selEmpresa = document.getElementById('empresa-select');
+    if (selEmpresa.querySelector(`option[value="${gerado.empresaId}"]`)) {
+      selEmpresa.value = gerado.empresaId;
+    }
+    navigate(gerado.tipo === 'pagar' ? 'pagar' : 'receber');
+  }
 }
 
 async function handleLogout() {
@@ -4621,9 +4631,10 @@ async function gerarLancamentosRecorrentesPendentes() {
     .eq('ativa', true)
     .lte('data_inicio', hoje.toISOString().slice(0, 10));
 
-  if (error || !recorrencias || !recorrencias.length) return;
+  if (error || !recorrencias || !recorrencias.length) return null;
 
   let gerados = 0;
+  let primeiroGerado = null; // { tipo, empresaId } — usado pra navegar automaticamente
 
   for (const r of recorrencias) {
     if (r.data_fim && r.data_fim < hoje.toISOString().slice(0, 10)) continue;
@@ -4652,12 +4663,15 @@ async function gerarLancamentosRecorrentesPendentes() {
     if (!insertError) {
       await sb.from('recorrencias').update({ ultima_geracao: hoje.toISOString().slice(0, 10) }).eq('id', r.id);
       gerados++;
+      if (!primeiroGerado) primeiroGerado = { tipo: r.tipo, empresaId: r.empresa_id };
     }
   }
 
   if (gerados > 0) {
     showToast(`${gerados} lançamento(s) recorrente(s) gerado(s) automaticamente este mês.`, 'info');
   }
+
+  return primeiroGerado;
 }
 
 // ============================================
@@ -5210,7 +5224,7 @@ async function carregarNotificacoes() {
   }
 
   lista.innerHTML = notificacoes.map(n => `
-    <div class="notificacao-item ${n.lida ? '' : 'nao-lida'}" onclick="marcarNotificacaoComoLida('${n.id}')">
+    <div class="notificacao-item ${n.lida ? '' : 'nao-lida'}" onclick="marcarNotificacaoComoLida('${n.id}', ${n.link_tela ? `'${n.link_tela}'` : 'null'})">
       <div class="notificacao-titulo">${n.titulo}</div>
       <div class="notificacao-mensagem">${n.mensagem}</div>
       <div class="notificacao-data">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
@@ -5233,9 +5247,14 @@ document.addEventListener('click', (e) => {
   }
 });
 
-async function marcarNotificacaoComoLida(id) {
+async function marcarNotificacaoComoLida(id, linkTela) {
   await sb.from('notificacoes').update({ lida: true }).eq('id', id);
   carregarNotificacoes();
+
+  if (linkTela) {
+    document.getElementById('notificacoes-panel').classList.remove('open');
+    navigate(linkTela);
+  }
 }
 
 async function marcarTodasNotificacoesComoLidas() {
