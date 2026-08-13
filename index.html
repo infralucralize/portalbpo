@@ -1628,6 +1628,7 @@
                 <option value="ambos">Pagar e Receber</option>
                 <option value="pagar">Só Contas a Pagar</option>
                 <option value="receber">Só Contas a Receber</option>
+                <option value="documento">Documentos</option>
               </select>
             </div>
           </div>
@@ -1674,12 +1675,7 @@
             <div class="form-group">
               <label>Categoria</label>
               <select id="documento-form-categoria">
-                <option value="Guia">Guia</option>
-                <option value="Balanço">Balanço</option>
-                <option value="Folha">Folha de pagamento</option>
-                <option value="Contrato">Contrato</option>
-                <option value="Comprovante">Comprovante</option>
-                <option value="Outro">Outro</option>
+                <option value="">Carregando...</option>
               </select>
             </div>
             <div class="form-group">
@@ -1696,13 +1692,8 @@
           </div>
         </div>
 
-        <div class="filters">
+        <div class="filters" id="documentos-filtros">
           <div class="filter-chip active" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>
-          <div class="filter-chip" data-filter-group="documentos" data-filter="Guia" onclick="filtrarDocumentos('Guia', this)">Guias</div>
-          <div class="filter-chip" data-filter-group="documentos" data-filter="Balanço" onclick="filtrarDocumentos('Balanço', this)">Balanços</div>
-          <div class="filter-chip" data-filter-group="documentos" data-filter="Folha" onclick="filtrarDocumentos('Folha', this)">Folha</div>
-          <div class="filter-chip" data-filter-group="documentos" data-filter="Contrato" onclick="filtrarDocumentos('Contrato', this)">Contratos</div>
-          <div class="filter-chip" data-filter-group="documentos" data-filter="Outro" onclick="filtrarDocumentos('Outro', this)">Outros</div>
         </div>
 
         <div class="card" style="padding:0;overflow:hidden">
@@ -4367,12 +4358,45 @@ async function popularSeletorParceiros(tipoLancamento) {
 // ============================================
 let ultimosDocumentosCarregados = [];
 
+let categoriasDocumentoCarregadas = [];
+
+// Busca as categorias configuráveis do tipo 'documento' pra essa empresa
+// (gerenciadas na tela "Categorias")
+async function buscarCategoriasDocumento() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) return [];
+
+  const { data, error } = await sb
+    .from('categorias')
+    .select('nome')
+    .eq('empresa_id', empresaId)
+    .eq('tipo', 'documento')
+    .eq('ativa', true)
+    .order('nome');
+
+  if (error) return [];
+  categoriasDocumentoCarregadas = data;
+  return data;
+}
+
+function renderizarFiltrosDocumentos() {
+  const container = document.getElementById('documentos-filtros');
+  const chipsCategorias = categoriasDocumentoCarregadas.map(c =>
+    `<div class="filter-chip" data-filter-group="documentos" data-filter="${c.nome}" onclick="filtrarDocumentos('${c.nome}', this)">${c.nome}</div>`
+  ).join('');
+
+  container.innerHTML = `<div class="filter-chip active" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>${chipsCategorias}`;
+}
+
 async function carregarDocumentosGerais() {
   const empresaId = empresaAtualId();
   const tbody = document.querySelector('#documentos-table tbody');
   if (!empresaId) return;
 
   tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  await buscarCategoriasDocumento();
+  renderizarFiltrosDocumentos();
 
   const { data, error } = await sb
     .from('anexos')
@@ -4417,8 +4441,13 @@ function filtrarDocumentos(categoria, chip) {
   renderizarDocumentos(lista);
 }
 
-function abrirFormNovoDocumento() {
-  document.getElementById('documento-form-categoria').value = 'Guia';
+async function abrirFormNovoDocumento() {
+  const categorias = categoriasDocumentoCarregadas.length ? categoriasDocumentoCarregadas : await buscarCategoriasDocumento();
+  const sel = document.getElementById('documento-form-categoria');
+  sel.innerHTML = categorias.length
+    ? categorias.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('')
+    : '<option value="Outro">Outro</option>';
+
   document.getElementById('documento-form-arquivo').value = '';
   document.getElementById('form-novo-documento').style.display = 'block';
 }
@@ -4509,7 +4538,7 @@ async function excluirDocumentoGeral(id, storagePath) {
 // ============================================
 let ultimasCategoriasCarregadas = [];
 
-const TIPO_CATEGORIA_LABEL = { pagar: 'Só Contas a Pagar', receber: 'Só Contas a Receber', ambos: 'Pagar e Receber' };
+const TIPO_CATEGORIA_LABEL = { pagar: 'Só Contas a Pagar', receber: 'Só Contas a Receber', ambos: 'Pagar e Receber', documento: 'Documentos' };
 
 async function carregarCategorias() {
   const empresaId = empresaAtualId();
