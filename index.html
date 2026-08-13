@@ -1771,6 +1771,7 @@
             <div class="subtitle" id="auditoria-subtitle">Histórico de alterações no sistema</div>
           </div>
           <div class="toolbar-actions">
+            <button class="btn ghost" onclick="exportarAuditoria()">📄 Exportar</button>
             <select id="auditoria-filtro-tabela" onchange="carregarAuditoria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px">
               <option value="">Todas as tabelas</option>
               <option value="lancamentos">Lançamentos</option>
@@ -1787,6 +1788,7 @@
               <thead>
                 <tr>
                   <th>Data/hora</th>
+                  <th>Empresa</th>
                   <th>Tabela</th>
                   <th>Ação</th>
                   <th>Usuário</th>
@@ -1794,7 +1796,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -3096,23 +3098,84 @@ async function excluirUsuario(userId, nome) {
 let ultimaAuditoriaCarregada = [];
 
 const TABELA_LABEL = {
-  lancamentos: 'Lançamento',
   conciliacao_bancaria: 'Conciliação',
   empresas: 'Empresa',
   perfis: 'Usuário',
 };
 
-const ACAO_LABEL = {
-  INSERT: 'Criado',
-  UPDATE: 'Atualizado',
-  DELETE: 'Excluído',
-};
+// Nome da tabela pra exibição — lançamentos ganham label contextual (Pagar/Receber)
+function obterTabelaLabel(a) {
+  if (a.tabela === 'lancamentos') {
+    const dados = a.dados_depois || a.dados_antes;
+    if (dados?.tipo === 'pagar') return 'Contas a Pagar';
+    if (dados?.tipo === 'receber') return 'Contas a Receber';
+    return 'Lançamento';
+  }
+  return TABELA_LABEL[a.tabela] || a.tabela;
+}
+
+// Descreve a ação de forma específica em vez de só "Criado/Atualizado/Excluído"
+function obterAcaoLabel(a) {
+  const antes = a.dados_antes;
+  const depois = a.dados_depois;
+
+  if (a.tabela === 'lancamentos') {
+    if (a.acao === 'INSERT') return 'Lançamento criado';
+    if (a.acao === 'DELETE') return 'Lançamento excluído';
+    if (a.acao === 'UPDATE' && antes && depois) {
+      if (antes.status !== depois.status) {
+        if (antes.status === 'aguardando_aprovacao' && depois.status === 'aberto') return 'Aprovado';
+        if (depois.status === 'pago') return 'Marcado como pago';
+        if (depois.status === 'recebido') return 'Marcado como recebido';
+        if (depois.status === 'cancelado') return 'Cancelado';
+        return `Status alterado para "${statusLabelMap[depois.status] || depois.status}"`;
+      }
+      return 'Dados editados';
+    }
+  }
+
+  if (a.tabela === 'conciliacao_bancaria') {
+    if (a.acao === 'INSERT') return 'Item lançado no extrato';
+    if (a.acao === 'DELETE') return 'Item excluído';
+    if (a.acao === 'UPDATE' && antes && depois) {
+      if (antes.status === 'pendente' && depois.status === 'conciliado') return 'Conciliado';
+      return 'Dados editados';
+    }
+  }
+
+  if (a.tabela === 'empresas') {
+    if (a.acao === 'INSERT') return 'Empresa cadastrada';
+    if (a.acao === 'DELETE') return 'Empresa excluída';
+    if (a.acao === 'UPDATE') return 'Dados da empresa atualizados';
+  }
+
+  if (a.tabela === 'perfis') {
+    if (a.acao === 'INSERT') return 'Usuário criado';
+    if (a.acao === 'DELETE') return 'Usuário excluído';
+    if (a.acao === 'UPDATE' && antes && depois) {
+      if (antes.role !== depois.role) return `Perfil alterado para "${roleLabel(depois.role)}"`;
+      return 'Dados do usuário atualizados';
+    }
+  }
+
+  return ACAO_LABEL_GENERICO[a.acao] || a.acao;
+}
+
+const ACAO_LABEL_GENERICO = { INSERT: 'Criado', UPDATE: 'Atualizado', DELETE: 'Excluído' };
+
+// Extrai o empresa_id relevante do registro de auditoria, dependendo da tabela
+function extrairEmpresaId(a) {
+  const dados = a.dados_depois || a.dados_antes;
+  if (!dados) return null;
+  if (a.tabela === 'empresas') return dados.id;
+  return dados.empresa_id || null;
+}
 
 async function carregarAuditoria() {
   const tbody = document.querySelector('#auditoria-table tbody');
   const filtro = document.getElementById('auditoria-filtro-tabela').value;
 
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
 
   let query = sb.from('auditoria').select('*, perfis(nome)').order('created_at', { ascending: false }).limit(100);
   if (filtro) query = query.eq('tabela', filtro);
@@ -3120,9 +3183,27 @@ async function carregarAuditoria() {
   const { data, error } = await query;
 
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
     return;
   }
+
+  // Resolve nomes de empresa (uma query só, pra todos os empresa_ids envolvidos)
+  const empresaIds = [...new Set(data.map(extrairEmpresaId).filter(Boolean))];
+  let mapaEmpresas = {};
+  if (empresaIds.length) {
+    const { data: empresasData } = await sb.from('empresas').select('id, nome').in('id', empresaIds);
+    (empresasData || []).forEach(e => { mapaEmpresas[e.id] = e.nome; });
+  }
+
+  data.forEach(a => {
+    if (a.tabela === 'empresas') {
+      const dados = a.dados_depois || a.dados_antes;
+      a._empresaNome = dados?.nome || '—';
+    } else {
+      const empresaId = extrairEmpresaId(a);
+      a._empresaNome = empresaId ? (mapaEmpresas[empresaId] || '—') : '—';
+    }
+  });
 
   ultimaAuditoriaCarregada = data;
   document.getElementById('auditoria-subtitle').textContent = `${data.length} registro(s) (últimos 100)`;
@@ -3131,13 +3212,36 @@ async function carregarAuditoria() {
     ? data.map(a => `
         <tr>
           <td>${new Date(a.created_at).toLocaleString('pt-BR')}</td>
-          <td>${TABELA_LABEL[a.tabela] || a.tabela}</td>
-          <td>${ACAO_LABEL[a.acao] || a.acao}</td>
+          <td>${a._empresaNome}</td>
+          <td>${obterTabelaLabel(a)}</td>
+          <td>${obterAcaoLabel(a)}</td>
           <td>${a.perfis?.nome || 'Sistema (automático)'}</td>
           <td><button class="action-btn view" onclick="verDetalheAuditoria('${a.id}')">Ver detalhes</button></td>
         </tr>
       `).join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Nenhum registro encontrado</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhum registro encontrado</td></tr>';
+}
+
+function exportarAuditoria() {
+  if (!ultimaAuditoriaCarregada.length) {
+    showToast('Nada para exportar.', 'error');
+    return;
+  }
+
+  const linhas = ultimaAuditoriaCarregada.map(a => [
+    new Date(a.created_at).toLocaleString('pt-BR'),
+    a._empresaNome,
+    obterTabelaLabel(a),
+    obterAcaoLabel(a),
+    a.perfis?.nome || 'Sistema (automático)'
+  ]);
+
+  exportarCSV(
+    `auditoria_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Data/hora', 'Empresa', 'Tabela', 'Ação', 'Usuário'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
 }
 
 function verDetalheAuditoria(id) {
@@ -3146,8 +3250,9 @@ function verDetalheAuditoria(id) {
 
   const conteudo = document.getElementById('auditoria-detalhe-conteudo');
   conteudo.innerHTML = `
-    <div style="margin-bottom:10px"><strong>Tabela:</strong> ${TABELA_LABEL[registro.tabela] || registro.tabela}</div>
-    <div style="margin-bottom:10px"><strong>Ação:</strong> ${ACAO_LABEL[registro.acao] || registro.acao}</div>
+    <div style="margin-bottom:10px"><strong>Empresa:</strong> ${registro._empresaNome}</div>
+    <div style="margin-bottom:10px"><strong>Tabela:</strong> ${obterTabelaLabel(registro)}</div>
+    <div style="margin-bottom:10px"><strong>Ação:</strong> ${obterAcaoLabel(registro)}</div>
     <div style="margin-bottom:10px"><strong>Usuário:</strong> ${registro.perfis?.nome || 'Sistema (automático)'}</div>
     <div style="margin-bottom:10px"><strong>Quando:</strong> ${new Date(registro.created_at).toLocaleString('pt-BR')}</div>
     ${registro.dados_antes ? `<div style="margin-top:14px"><strong>Antes:</strong><pre style="background:#F5F7F8;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_antes, null, 2)}</pre></div>` : ''}
