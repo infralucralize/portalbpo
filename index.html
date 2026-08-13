@@ -831,44 +831,134 @@
   ============================ */
   .table-wrapper {
     overflow-x: auto;
-    margin: -4px;
-    padding: 4px;
+    overflow-y: visible;
+    max-height: 620px;
+    /* Sombra indicando corte horizontal quando há overflow */
+    background:
+      linear-gradient(to right, var(--surface) 30%, rgba(255,255,255,0)),
+      linear-gradient(to right, rgba(255,255,255,0), var(--surface) 70%) 100% 0,
+      radial-gradient(farthest-side at 0 50%, rgba(14,20,40,.10), rgba(0,0,0,0)),
+      radial-gradient(farthest-side at 100% 50%, rgba(14,20,40,.10), rgba(0,0,0,0)) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 40px 100%, 40px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
   }
 
   table { width: 100%; border-collapse: collapse; }
 
+  /* Cabeçalho fixo dentro do card durante o scroll da tabela */
   th {
     text-align: left;
-    font-size: 11px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
     color: var(--text-muted);
-    padding: 10px 14px;
-    border-bottom: 2px solid var(--border);
-    font-weight: 700;
+    padding: var(--s3) var(--s4);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
     white-space: nowrap;
     background: var(--surface-2);
+    position: sticky;
+    top: 0;
+    z-index: 2;
   }
 
-  th:first-child { border-radius: 8px 0 0 0; }
-  th:last-child { border-radius: 0 8px 0 0; }
+  th:first-child { border-radius: var(--r-sm) 0 0 0; }
+  th:last-child { border-radius: 0 var(--r-sm) 0 0; }
+
+  /* Coluna de valor: alinhada à direita, conforme briefing */
+  th.col-num, td.col-num { text-align: right; }
+  th.col-acoes, td.col-acoes { text-align: right; white-space: nowrap; }
 
   td {
-    padding: 13px 14px;
+    padding: 0 var(--s4);
+    height: 48px;
     border-bottom: 1px solid var(--border);
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.5;
     vertical-align: middle;
+    color: var(--text);
   }
 
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--surface-2); }
+  /* Sem zebra — só hover, para não poluir junto com as bordas */
+  tbody tr:hover td { background: var(--surface-2); }
 
-  .td-main { font-weight: 500; }
-  .td-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  /* Nomes longos truncam com ellipsis (o title completo vem do JS) */
+  .td-main {
+    font-weight: 500;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .td-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-  .amount { font-weight: 700; font-family: 'Comfortaa', sans-serif; font-size: 13px; }
+  .amount {
+    font-weight: 700;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+  }
   .amount.negative { color: var(--red); }
   .amount.positive { color: var(--green); }
+
+  /* ============================
+     EMPTY STATE de tabela
+  ============================ */
+  .table-empty {
+    text-align: center;
+    padding: var(--s7) var(--s4);
+    color: var(--text-muted);
+  }
+  .table-empty .icon {
+    width: 40px; height: 40px;
+    color: var(--border-strong);
+    margin-bottom: var(--s3);
+    stroke-width: 1.25;
+  }
+  .table-empty-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--s1);
+  }
+  .table-empty-desc { font-size: 13px; margin-bottom: var(--s4); }
+
+  /* ============================
+     SKELETON (carregamento sem salto de layout)
+  ============================ */
+  @keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .sk {
+    background: linear-gradient(90deg,
+      var(--surface-2) 25%,
+      #EEF1F3 50%,
+      var(--surface-2) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    border-radius: var(--r-sm);
+    display: block;
+  }
+  .sk-text { height: 12px; margin: 4px 0; }
+  .sk-w-40 { width: 40%; }
+  .sk-w-60 { width: 60%; }
+  .sk-w-80 { width: 80%; }
+  .sk-w-100 { width: 100%; }
+  /* Célula de skeleton mantém a altura final da linha (48px) */
+  td .sk-text { height: 12px; }
 
   .action-btn {
     padding: 5px 12px;
@@ -904,45 +994,55 @@
   /* ============================
      STATUS PILLS
   ============================ */
-  .status-pill {
+  /* ============================
+     BADGE — componente único de status.
+     Usa cor + ponto + rótulo textual (nunca só cor, por acessibilidade).
+     As classes .status-* são geradas dinamicamente pelo JS a partir do
+     valor do enum no banco — não renomear.
+  ============================ */
+  .status-pill, .badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
+    gap: var(--s2);
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 11px;
+    font-size: 12px;
     font-weight: 600;
+    line-height: 1;
     white-space: nowrap;
   }
 
-  .status-pill::before {
+  .status-pill::before, .badge::before {
     content: '';
-    width: 5px; height: 5px;
+    width: 6px; height: 6px;
     border-radius: 50%;
     background: currentColor;
+    flex-shrink: 0;
   }
 
-  .status-pago, .status-recebido {
-    background: rgba(31,157,107,0.1);
+  /* Variantes semânticas (paleta Lucralize) */
+  .status-pago, .status-recebido, .badge-success {
+    background: var(--success-bg);
     color: var(--green);
   }
 
-  .status-aberto {
-    background: rgba(12,116,136,0.1);
+  .status-aberto, .badge-info {
+    background: var(--info-bg);
     color: var(--teal);
   }
 
-  .status-atrasado, .status-inadimplente {
-    background: rgba(246,38,66,0.08);
+  .status-atrasado, .status-inadimplente, .badge-danger {
+    background: var(--danger-bg);
     color: var(--red);
   }
 
-  .status-aguardando_aprovacao {
-    background: rgba(217,138,30,0.1);
+  .status-aguardando_aprovacao, .badge-warning {
+    background: var(--warning-bg);
     color: var(--amber);
   }
 
-  .status-cancelado {
+  .status-cancelado, .badge-neutral {
     background: rgba(107,118,134,0.1);
     color: var(--text-muted);
   }
@@ -1679,7 +1779,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1723,7 +1823,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1765,7 +1865,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1843,7 +1943,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1898,7 +1998,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -1956,7 +2056,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -2046,7 +2146,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -2121,7 +2221,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -2283,7 +2383,7 @@
                   </tr>
                 </thead>
                 <tbody id="fluxo-entradas-tbody">
-                  <tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Carregando...</td></tr>
+                  <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -2303,7 +2403,7 @@
                   </tr>
                 </thead>
                 <tbody id="fluxo-saidas-tbody">
-                  <tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Carregando...</td></tr>
+                  <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -2441,7 +2541,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -2513,7 +2613,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -2559,7 +2659,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
+                <tr><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td><td><span class="sk sk-text sk-w-60"></span></td></tr>
               </tbody>
             </table>
           </div>
@@ -3089,6 +3189,33 @@ function esc(valor) {
     .replace(/'/g, '&#39;');
 }
 
+// ============================================
+// HELPERS DE ESTADO DE TABELA
+// Skeleton evita salto de layout durante o carregamento;
+// empty state explica o vazio em vez de deixar a tabela em branco.
+// ============================================
+function skeletonLinhas(colunas, linhas = 5) {
+  const larguras = ['sk-w-80', 'sk-w-60', 'sk-w-40', 'sk-w-100', 'sk-w-60', 'sk-w-40', 'sk-w-80'];
+  let html = '';
+  for (let i = 0; i < linhas; i++) {
+    html += '<tr>';
+    for (let j = 0; j < colunas; j++) {
+      html += `<td><span class="sk sk-text ${larguras[j % larguras.length]}"></span></td>`;
+    }
+    html += '</tr>';
+  }
+  return html;
+}
+
+function tabelaVazia(colunas, titulo, descricao, botaoHtml = '') {
+  return `<tr><td colspan="${colunas}" class="table-empty">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-inbox"/></svg>
+    <div class="table-empty-title">${esc(titulo)}</div>
+    <div class="table-empty-desc">${esc(descricao)}</div>
+    ${botaoHtml}
+  </td></tr>`;
+}
+
 function formatarMoeda(valor) {
   return 'R$ ' + Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -3102,11 +3229,11 @@ async function carregarContasPagar() {
   const empresaId = empresaAtualId();
   const tbody = document.querySelector('#pagar-table tbody');
   if (!empresaId) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Selecione uma empresa</td></tr>';
+    tbody.innerHTML = tabelaVazia(7, 'Nenhuma empresa selecionada', 'Escolha uma empresa no seletor da barra lateral para ver os lançamentos.');
     return;
   }
 
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(7);
 
   const { data: lancamentos, error } = await sb
     .from('lancamentos')
@@ -3123,7 +3250,7 @@ async function carregarContasPagar() {
   }
 
   if (!lancamentos.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = tabelaVazia(7, 'Nenhuma conta a pagar', 'Cadastre o primeiro lançamento para começar o controle de obrigações.', '<button class="btn can-create" onclick="abrirModalNovoLancamento(\'pagar\')">Cadastrar primeiro lançamento</button>');
   } else {
     tbody.innerHTML = lancamentos.map(l => {
       const podeAprovar = l.status === 'aguardando_aprovacao';
@@ -3172,11 +3299,11 @@ async function carregarContasReceber() {
   const empresaId = empresaAtualId();
   const tbody = document.querySelector('#receber-table tbody');
   if (!empresaId) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Selecione uma empresa</td></tr>';
+    tbody.innerHTML = tabelaVazia(6, 'Nenhuma empresa selecionada', 'Escolha uma empresa no seletor da barra lateral para ver os lançamentos.');
     return;
   }
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(6);
 
   const { data: lancamentos, error } = await sb
     .from('lancamentos')
@@ -3193,7 +3320,7 @@ async function carregarContasReceber() {
   }
 
   if (!lancamentos.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = tabelaVazia(6, 'Nenhuma conta a receber', 'Cadastre o primeiro título para acompanhar o faturamento.', '<button class="btn can-create" onclick="abrirModalNovoLancamento(\'receber\')">Cadastrar primeiro lançamento</button>');
   } else {
     const hoje = new Date();
     tbody.innerHTML = lancamentos.map(l => {
@@ -4041,7 +4168,7 @@ async function carregarEmpresas() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma empresa cadastrada</td></tr>';
+    : tabelaVazia(6, 'Nenhuma empresa', 'Cadastre a primeira empresa cliente para começar.');
 
   // Também alimenta o seletor de empresa do formulário de usuários
   const sel = document.getElementById('usuario-form-empresa');
@@ -4305,7 +4432,7 @@ async function carregarUsuarios() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum usuário cadastrado</td></tr>';
+    : tabelaVazia(5, 'Nenhum usuário', 'Cadastre os acessos da equipe e dos clientes.');
 
   ultimosUsuariosCarregados = perfisData;
 
@@ -4428,7 +4555,7 @@ let ultimaCarteiraCarregada = [];
 
 async function carregarCarteira() {
   const tbody = document.querySelector('#carteira-table tbody');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(6);
 
   const { data: empresas, error: errEmpresas } = await sb.from('empresas').select('*').order('nome');
   if (errEmpresas) {
@@ -4490,7 +4617,7 @@ function renderizarCarteira(linhas) {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma empresa cadastrada</td></tr>';
+    : tabelaVazia(6, 'Nenhuma empresa', 'Cadastre a primeira empresa cliente para começar.');
 }
 
 function filtrarCarteira(termo) {
@@ -4629,7 +4756,7 @@ async function carregarAuditoria() {
   const tbody = document.querySelector('#auditoria-table tbody');
   const filtro = document.getElementById('auditoria-filtro-tabela').value;
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(6);
 
   let query = sb.from('auditoria').select('*, perfis(nome)').order('created_at', { ascending: false }).limit(100);
   if (filtro) query = query.eq('tabela', filtro);
@@ -4673,7 +4800,7 @@ async function carregarAuditoria() {
           <td><button class="action-btn view" onclick="verDetalheAuditoria('${a.id}')">Ver detalhes</button></td>
         </tr>
       `).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum registro encontrado</td></tr>';
+    : tabelaVazia(6, 'Nenhum registro de auditoria', 'As alterações feitas no sistema aparecerão aqui.');
 }
 
 function exportarAuditoria() {
@@ -5094,7 +5221,7 @@ async function carregarParceiros() {
   const tbody = document.querySelector('#parceiros-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(6);
 
   const { data, error } = await sb.from('parceiros').select('*').eq('empresa_id', empresaId).order('nome');
 
@@ -5127,7 +5254,7 @@ function renderizarParceiros(lista) {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum cadastro encontrado</td></tr>';
+    : tabelaVazia(6, 'Nenhum fornecedor ou cliente', 'Cadastre fornecedores e clientes para vinculá-los aos lançamentos.');
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5270,7 +5397,7 @@ async function carregarRecorrencias() {
   const tbody = document.querySelector('#recorrencias-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(7);
 
   const { data, error } = await sb.from('recorrencias').select('*').eq('empresa_id', empresaId).order('descricao');
 
@@ -5299,7 +5426,7 @@ async function carregarRecorrencias() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma recorrência cadastrada</td></tr>';
+    : tabelaVazia(7, 'Nenhuma recorrência', 'Cadastre lançamentos que se repetem todo mês, como aluguel e folha.');
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5431,7 +5558,7 @@ async function carregarPrazosFiscais() {
   const tbody = document.querySelector('#prazosfiscais-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(5);
 
   const { data, error } = await sb.from('prazos_fiscais').select('*').eq('empresa_id', empresaId).order('nome');
 
@@ -5465,7 +5592,7 @@ async function carregarPrazosFiscais() {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum prazo fiscal cadastrado</td></tr>';
+    : tabelaVazia(5, 'Nenhum prazo fiscal', 'Cadastre obrigações como DAS e DCTF para receber alertas automáticos.');
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5662,7 +5789,7 @@ async function carregarDocumentosGerais() {
   const tbody = document.querySelector('#documentos-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(4);
 
   await buscarCategoriasDocumento();
   renderizarFiltrosDocumentos();
@@ -5700,7 +5827,7 @@ function renderizarDocumentos(lista) {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum documento enviado ainda</td></tr>';
+    : tabelaVazia(4, 'Nenhum documento', 'Envie guias, balanços, contratos e outros arquivos gerais.');
 }
 
 function filtrarDocumentos(categoria, chip) {
@@ -5814,7 +5941,7 @@ async function carregarCategorias() {
   const tbody = document.querySelector('#categorias-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
+  tbody.innerHTML = skeletonLinhas(4);
 
   const { data, error } = await sb.from('categorias').select('*').eq('empresa_id', empresaId).order('nome');
 
@@ -5840,7 +5967,7 @@ async function carregarCategorias() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma categoria cadastrada</td></tr>';
+    : tabelaVazia(4, 'Nenhuma categoria', 'Categorias organizam os lançamentos e alimentam o DRE.');
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
