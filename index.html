@@ -1177,6 +1177,10 @@
         <div class="nav-icon">◆</div>
         Dashboard KPI
       </div>
+      <div class="nav-item lucralize-staff" data-screen="carteira" style="display:none">
+        <div class="nav-icon">🗂</div>
+        Carteira de Clientes
+      </div>
       <div class="nav-item" data-screen="pagar">
         <div class="nav-icon">↧</div>
         Contas a Pagar
@@ -1382,6 +1386,40 @@
                   <td>≤ 5 dias</td>
                   <td id="ind-ciclo-situacao">—</td>
                 </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CARTEIRA DE CLIENTES (equipe + admin) ============ -->
+      <div class="screen" id="screen-carteira">
+        <div class="toolbar">
+          <div>
+            <h2>Carteira de Clientes</h2>
+            <div class="subtitle" id="carteira-subtitle">Visão consolidada de todas as empresas</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn ghost" onclick="exportarCarteira()">📄 Exportar</button>
+            <input type="text" class="search-input" placeholder="🔍  Buscar empresa..." oninput="filtrarCarteira(this.value)">
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="carteira-table">
+              <thead>
+                <tr>
+                  <th>Empresa</th>
+                  <th>Saldo consolidado</th>
+                  <th>Aguardando aprovação</th>
+                  <th>Atrasado/Inadimplente</th>
+                  <th>Última movimentação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2151,6 +2189,7 @@ function applyRolePermissions(role) {
   const canCreate = ['admin_lucralize', 'equipe_lucralize', 'cliente_lancamento'].includes(role);
   const canApprove = ['admin_lucralize', 'equipe_lucralize'].includes(role);
   const isAdmin = role === 'admin_lucralize';
+  const isLucralizeStaff = ['admin_lucralize', 'equipe_lucralize'].includes(role);
 
   document.querySelectorAll('.can-create').forEach(el => {
     el.style.display = canCreate ? '' : 'none';
@@ -2163,6 +2202,10 @@ function applyRolePermissions(role) {
   document.querySelectorAll('.admin-only').forEach(el => {
     el.style.display = isAdmin ? '' : 'none';
   });
+
+  document.querySelectorAll('.lucralize-staff').forEach(el => {
+    el.style.display = isLucralizeStaff ? '' : 'none';
+  });
 }
 
 // ============================================
@@ -2170,6 +2213,7 @@ function applyRolePermissions(role) {
 // ============================================
 const screenTitles = {
   dashboard: ['Dashboard KPI', ''], // subtítulo é calculado dinamicamente em navigate()
+  carteira: ['Carteira de Clientes', 'Visão consolidada de todas as empresas'],
   pagar: ['Contas a Pagar', 'Controle de obrigações e aprovações'],
   receber: ['Contas a Receber', 'Controle de faturamento e inadimplência'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
@@ -2206,6 +2250,7 @@ function navigate(key) {
   }
 
   if (key === 'dashboard') carregarDashboard();
+  if (key === 'carteira') carregarCarteira();
   if (key === 'pagar') carregarContasPagar();
   if (key === 'receber') carregarContasReceber();
   if (key === 'fluxo') carregarFluxoCaixa();
@@ -3080,6 +3125,114 @@ async function salvarNovoUsuario() {
   showToast(isEdicao ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!', 'success');
   fecharFormNovoUsuario();
   carregarUsuarios();
+}
+
+// ============================================
+// CARTEIRA DE CLIENTES (equipe + admin, todas as empresas de uma vez)
+// ============================================
+let ultimaCarteiraCarregada = [];
+
+async function carregarCarteira() {
+  const tbody = document.querySelector('#carteira-table tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data: empresas, error: errEmpresas } = await sb.from('empresas').select('*').order('nome');
+  if (errEmpresas) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red)">Erro: ${errEmpresas.message}</td></tr>`;
+    return;
+  }
+
+  const { data: lancs, error: errLancs } = await sb.from('lancamentos').select('empresa_id, tipo, status, valor, created_at');
+  if (errLancs) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red)">Erro: ${errLancs.message}</td></tr>`;
+    return;
+  }
+
+  const linhas = empresas.map(emp => {
+    const doEmpresa = lancs.filter(l => l.empresa_id === emp.id);
+
+    const recebido = doEmpresa.filter(l => l.tipo === 'receber' && l.status === 'recebido').reduce((s, l) => s + Number(l.valor), 0);
+    const pago = doEmpresa.filter(l => l.tipo === 'pagar' && l.status === 'pago').reduce((s, l) => s + Number(l.valor), 0);
+    const saldo = recebido - pago;
+
+    const aguardando = doEmpresa.filter(l => l.status === 'aguardando_aprovacao').length;
+    const criticos = doEmpresa.filter(l => l.status === 'atrasado' || l.status === 'inadimplente').length;
+
+    const datas = doEmpresa.map(l => new Date(l.created_at));
+    const ultimaMovimentacao = datas.length ? new Date(Math.max(...datas)) : null;
+
+    return { empresa: emp, saldo, aguardando, criticos, ultimaMovimentacao };
+  });
+
+  // Empresas que precisam de mais atenção aparecem primeiro
+  linhas.sort((a, b) => (b.aguardando + b.criticos) - (a.aguardando + a.criticos));
+
+  ultimaCarteiraCarregada = linhas;
+  document.getElementById('carteira-subtitle').textContent = `${empresas.length} empresa(s) na carteira`;
+
+  renderizarCarteira(linhas);
+}
+
+function renderizarCarteira(linhas) {
+  const tbody = document.querySelector('#carteira-table tbody');
+
+  tbody.innerHTML = linhas.length
+    ? linhas.map(l => {
+        const diasSemMovimento = l.ultimaMovimentacao
+          ? Math.floor((new Date() - l.ultimaMovimentacao) / (1000 * 60 * 60 * 24))
+          : null;
+        const ultimaMovTexto = l.ultimaMovimentacao
+          ? `${formatarData(l.ultimaMovimentacao.toISOString().slice(0, 10))} (${diasSemMovimento === 0 ? 'hoje' : diasSemMovimento + ' dias atrás'})`
+          : 'Sem movimentação';
+
+        return `
+          <tr>
+            <td><div class="td-main">${l.empresa.nome}</div><div class="td-sub">${l.empresa.cnpj}</div></td>
+            <td><span class="amount" style="color:${l.saldo >= 0 ? 'var(--green)' : 'var(--red)'}">${formatarMoeda(l.saldo)}</span></td>
+            <td>${l.aguardando > 0 ? `<span class="status-pill status-aguardando_aprovacao">${l.aguardando}</span>` : '—'}</td>
+            <td>${l.criticos > 0 ? `<span class="status-pill status-atrasado">${l.criticos}</span>` : '—'}</td>
+            <td style="${diasSemMovimento !== null && diasSemMovimento > 30 ? 'color:var(--red)' : ''}">${ultimaMovTexto}</td>
+            <td><button class="action-btn view" onclick="irParaEmpresa('${l.empresa.id}')">Ver dashboard</button></td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
+}
+
+function filtrarCarteira(termo) {
+  const termoLower = termo.toLowerCase();
+  const filtradas = ultimaCarteiraCarregada.filter(l => l.empresa.nome.toLowerCase().includes(termoLower));
+  renderizarCarteira(filtradas);
+}
+
+function irParaEmpresa(empresaId) {
+  const sel = document.getElementById('empresa-select');
+  sel.value = empresaId;
+  changeEmpresa(empresaId);
+  navigate('dashboard');
+}
+
+function exportarCarteira() {
+  if (!ultimaCarteiraCarregada.length) {
+    showToast('Nada para exportar.', 'error');
+    return;
+  }
+
+  const linhas = ultimaCarteiraCarregada.map(l => [
+    l.empresa.nome,
+    l.empresa.cnpj,
+    Number(l.saldo).toFixed(2).replace('.', ','),
+    l.aguardando,
+    l.criticos,
+    l.ultimaMovimentacao ? formatarData(l.ultimaMovimentacao.toISOString().slice(0, 10)) : 'Sem movimentação'
+  ]);
+
+  exportarCSV(
+    `carteira_de_clientes_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Empresa', 'CNPJ', 'Saldo consolidado', 'Aguardando aprovação', 'Atrasado/Inadimplente', 'Última movimentação'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
 }
 
 async function excluirUsuario(userId, nome) {
