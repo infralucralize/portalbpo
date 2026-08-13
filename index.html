@@ -1195,6 +1195,10 @@
         <div class="nav-icon">🤝</div>
         Fornecedores/Clientes
       </div>
+      <div class="nav-item" data-screen="categorias">
+        <div class="nav-icon">🏷</div>
+        Categorias
+      </div>
       <div class="nav-section-label">Análise</div>
       <div class="nav-item" data-screen="fluxo">
         <div class="nav-icon">∿</div>
@@ -1588,6 +1592,60 @@
               </thead>
               <tbody>
                 <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CATEGORIAS (plano de contas) ============ -->
+      <div class="screen" id="screen-categorias">
+        <div class="toolbar">
+          <div>
+            <h2>Categorias</h2>
+            <div class="subtitle" id="categorias-subtitle">Plano de contas da empresa</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn can-create" onclick="abrirFormNovaCategoria()">+ Nova categoria</button>
+          </div>
+        </div>
+
+        <div class="card can-create" id="form-nova-categoria" style="display:none">
+          <div class="card-header"><h3 id="categoria-form-titulo">Nova categoria</h3></div>
+          <input type="hidden" id="categoria-form-id" value="">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="categoria-form-nome" placeholder="Ex: Frete, Impostos, Consultoria...">
+            </div>
+            <div class="form-group">
+              <label>Aparece em</label>
+              <select id="categoria-form-tipo">
+                <option value="ambos">Pagar e Receber</option>
+                <option value="pagar">Só Contas a Pagar</option>
+                <option value="receber">Só Contas a Receber</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovaCategoria()">Cancelar</button>
+            <button class="btn" onclick="salvarCategoria()">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="categorias-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Aparece em</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2020,11 +2078,6 @@
           <label>Categoria</label>
           <select id="pagar-form-categoria">
             <option value="">Selecione</option>
-            <option>Operacional</option>
-            <option>Financeira</option>
-            <option>Investimento</option>
-            <option>Marketing</option>
-            <option>Administrativa</option>
           </select>
         </div>
         <div class="form-group">
@@ -2093,10 +2146,6 @@
         <label>Categoria (opcional)</label>
         <select id="receber-form-categoria">
           <option value="">Selecione</option>
-          <option>Vendas</option>
-          <option>Serviços</option>
-          <option>Recorrente</option>
-          <option>Outros</option>
         </select>
       </div>
       <div class="form-group">
@@ -2391,6 +2440,7 @@ const screenTitles = {
   pagar: ['Contas a Pagar', 'Controle de obrigações e aprovações'],
   receber: ['Contas a Receber', 'Controle de faturamento e inadimplência'],
   parceiros: ['Fornecedores/Clientes', 'Cadastro de fornecedores e clientes'],
+  categorias: ['Categorias', 'Plano de contas da empresa'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
@@ -2429,6 +2479,7 @@ function navigate(key) {
   if (key === 'pagar') carregarContasPagar();
   if (key === 'receber') carregarContasReceber();
   if (key === 'parceiros') carregarParceiros();
+  if (key === 'categorias') carregarCategorias();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
@@ -4237,8 +4288,138 @@ async function popularSeletorParceiros(tipoLancamento) {
     data.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
 }
 
+// ============================================
+// CATEGORIAS (plano de contas por empresa)
+// ============================================
+let ultimasCategoriasCarregadas = [];
+
+const TIPO_CATEGORIA_LABEL = { pagar: 'Só Contas a Pagar', receber: 'Só Contas a Receber', ambos: 'Pagar e Receber' };
+
+async function carregarCategorias() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#categorias-table tbody');
+  if (!empresaId) return;
+
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data, error } = await sb.from('categorias').select('*').eq('empresa_id', empresaId).order('nome');
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  ultimasCategoriasCarregadas = data;
+  document.getElementById('categorias-subtitle').textContent = `${data.length} categoria(s) cadastrada(s)`;
+
+  tbody.innerHTML = data.length
+    ? data.map(c => `
+        <tr>
+          <td>${c.nome}</td>
+          <td>${TIPO_CATEGORIA_LABEL[c.tipo] || c.tipo}</td>
+          <td><span class="status-pill ${c.ativa ? 'status-pago' : 'status-atrasado'}">${c.ativa ? 'Ativa' : 'Inativa'}</span></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="action-btn view can-create" onclick="abrirFormEdicaoCategoria('${c.id}')">Editar</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirCategoria('${c.id}', '${c.nome.replace(/'/g, "\\'")}')">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma categoria cadastrada</td></tr>';
+
+  if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+function abrirFormNovaCategoria() {
+  document.getElementById('categoria-form-id').value = '';
+  document.getElementById('categoria-form-titulo').textContent = 'Nova categoria';
+  document.getElementById('categoria-form-nome').value = '';
+  document.getElementById('categoria-form-tipo').value = 'ambos';
+  document.getElementById('form-nova-categoria').style.display = 'block';
+}
+
+function abrirFormEdicaoCategoria(id) {
+  const c = ultimasCategoriasCarregadas.find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('categoria-form-id').value = c.id;
+  document.getElementById('categoria-form-titulo').textContent = `Editando: ${c.nome}`;
+  document.getElementById('categoria-form-nome').value = c.nome;
+  document.getElementById('categoria-form-tipo').value = c.tipo;
+  document.getElementById('form-nova-categoria').style.display = 'block';
+  document.getElementById('form-nova-categoria').scrollIntoView({ behavior: 'smooth' });
+}
+
+function fecharFormNovaCategoria() {
+  document.getElementById('form-nova-categoria').style.display = 'none';
+}
+
+async function salvarCategoria() {
+  const id = document.getElementById('categoria-form-id').value;
+  const nome = document.getElementById('categoria-form-nome').value.trim();
+  const tipo = document.getElementById('categoria-form-tipo').value;
+
+  if (!nome) {
+    showToast('Informe o nome da categoria.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  const dados = { empresa_id: empresaId, nome, tipo };
+
+  const { error } = id
+    ? await sb.from('categorias').update(dados).eq('id', id)
+    : await sb.from('categorias').insert(dados);
+
+  if (error) {
+    showToast('Erro ao salvar: ' + (error.message.includes('duplicate') ? 'já existe uma categoria com esse nome' : error.message), 'error');
+    return;
+  }
+
+  showToast(id ? 'Categoria atualizada!' : 'Categoria criada!', 'success');
+  fecharFormNovaCategoria();
+  carregarCategorias();
+}
+
+async function excluirCategoria(id, nome) {
+  if (!confirm(`Excluir a categoria "${nome}"? Lançamentos que já usam esse texto não serão afetados.`)) return;
+
+  const { error } = await sb.from('categorias').delete().eq('id', id);
+  if (error) {
+    showToast('Erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Categoria excluída!', 'success');
+  carregarCategorias();
+}
+
+// Popula o seletor de categorias dos modais de lançamento, filtrando
+// pelo tipo (pagar/receber) + as marcadas como 'ambos'
+async function popularSeletorCategorias(tipoLancamento) {
+  const empresaId = empresaAtualId();
+  const selId = `${tipoLancamento}-form-categoria`;
+  const sel = document.getElementById(selId);
+  if (!empresaId || !sel) return;
+
+  const { data, error } = await sb
+    .from('categorias')
+    .select('id, nome, tipo')
+    .eq('empresa_id', empresaId)
+    .eq('ativa', true)
+    .or(`tipo.eq.${tipoLancamento},tipo.eq.ambos`)
+    .order('nome');
+
+  if (error) return;
+
+  sel.innerHTML = '<option value="">Selecione</option>' +
+    data.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+}
+
 function abrirModalNovoLancamento(tipo) {
   popularSeletorParceiros(tipo);
+  popularSeletorCategorias(tipo);
   openModal(`modal-${tipo}`);
 }
 
