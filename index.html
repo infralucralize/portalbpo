@@ -1238,6 +1238,10 @@
             <div class="nav-icon">📅</div>
             Prazos Fiscais
           </div>
+          <div class="nav-item" data-screen="dre">
+            <div class="nav-icon">📊</div>
+            DRE
+          </div>
           <div class="nav-item" data-screen="fluxo">
             <div class="nav-icon">∿</div>
             Fluxo de Caixa
@@ -1949,6 +1953,95 @@
                 <tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ DRE (Demonstração de Resultado) ============ -->
+      <div class="screen" id="screen-dre">
+        <div class="toolbar">
+          <div>
+            <h2>DRE</h2>
+            <div class="subtitle" id="dre-subtitle">Demonstração de Resultado — regime de competência</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn ghost" onclick="exportarDRE()">📄 Exportar PDF</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="form-row" style="align-items:end">
+            <div class="form-group">
+              <label>Tipo de período</label>
+              <select id="dre-tipo-periodo" onchange="atualizarCamposPeriodoDRE()">
+                <option value="mensal">Mês específico</option>
+                <option value="trimestral">Trimestre</option>
+                <option value="anual">Ano</option>
+              </select>
+            </div>
+            <div class="form-group" id="dre-campo-mes">
+              <label>Mês</label>
+              <select id="dre-mes">
+                <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+                <option value="3">Março</option><option value="4">Abril</option>
+                <option value="5">Maio</option><option value="6">Junho</option>
+                <option value="7">Julho</option><option value="8">Agosto</option>
+                <option value="9">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="form-group" id="dre-campo-trimestre" style="display:none">
+              <label>Trimestre</label>
+              <select id="dre-trimestre">
+                <option value="1">1º Trimestre (Jan-Mar)</option>
+                <option value="2">2º Trimestre (Abr-Jun)</option>
+                <option value="3">3º Trimestre (Jul-Set)</option>
+                <option value="4">4º Trimestre (Out-Dez)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Ano</label>
+              <input type="number" id="dre-ano" style="width:100px">
+            </div>
+            <div class="form-group" style="flex:0">
+              <button class="btn" onclick="carregarDRE()">Gerar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+          <div class="kpi-card" style="--accent:#1F9D6B">
+            <div class="kpi-label">Receitas do período</div>
+            <div class="kpi-value" id="dre-total-receitas" style="color:var(--green)">—</div>
+          </div>
+          <div class="kpi-card" style="--accent:#F62642">
+            <div class="kpi-label">Despesas do período</div>
+            <div class="kpi-value" id="dre-total-despesas" style="color:var(--red)">—</div>
+          </div>
+          <div class="kpi-card" style="--accent:#0C7488">
+            <div class="kpi-label">Resultado do período</div>
+            <div class="kpi-value" id="dre-resultado">—</div>
+          </div>
+        </div>
+
+        <div class="panel-grid-equal">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><h3>Receitas por categoria</h3></div>
+            <div class="table-wrapper">
+              <table id="dre-receitas-table">
+                <thead><tr><th>Categoria</th><th>Valor</th><th>%</th></tr></thead>
+                <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Clique em "Gerar"</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-header"><h3>Despesas por categoria</h3></div>
+            <div class="table-wrapper">
+              <table id="dre-despesas-table">
+                <thead><tr><th>Categoria</th><th>Valor</th><th>%</th></tr></thead>
+                <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Clique em "Gerar"</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -2770,6 +2863,7 @@ const screenTitles = {
   documentos: ['Documentos', 'Guias, balanços, contratos e outros arquivos gerais'],
   recorrencias: ['Recorrências', 'Lançamentos que se repetem todo mês'],
   prazosfiscais: ['Prazos Fiscais', 'Obrigações fiscais recorrentes (DAS, DCTF, etc.)'],
+  dre: ['DRE', 'Demonstração de Resultado — regime de competência'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
@@ -2821,6 +2915,7 @@ function navigate(key) {
   if (key === 'documentos') carregarDocumentosGerais();
   if (key === 'recorrencias') carregarRecorrencias();
   if (key === 'prazosfiscais') carregarPrazosFiscais();
+  if (key === 'dre') iniciarTelaDRE();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
@@ -3128,6 +3223,157 @@ function carregarIndicadores(lancs) {
 }
 
 let fluxoCaixaAtual = { dias: 30, entradasPrevistas: [], saidasPrevistas: [] }; // usado pela exportação
+
+// ============================================
+// DRE (Demonstração de Resultado do Exercício)
+// ============================================
+// Critério: regime de COMPETÊNCIA — considera todos os lançamentos
+// com vencimento dentro do período, independente de já terem sido
+// pagos/recebidos ou não (é o padrão contábil correto pra DRE;
+// regime de caixa é mais próprio de fluxo de caixa, que já temos
+// numa tela separada). Lançamentos 'cancelado' são excluídos.
+let dreDadosAtuais = null; // guarda o último relatório gerado, pra exportação
+
+function iniciarTelaDRE() {
+  const hoje = new Date();
+  document.getElementById('dre-ano').value = hoje.getFullYear();
+  document.getElementById('dre-mes').value = hoje.getMonth() + 1;
+  document.getElementById('dre-trimestre').value = Math.ceil((hoje.getMonth() + 1) / 3);
+  atualizarCamposPeriodoDRE();
+  carregarDRE();
+}
+
+function atualizarCamposPeriodoDRE() {
+  const tipo = document.getElementById('dre-tipo-periodo').value;
+  document.getElementById('dre-campo-mes').style.display = tipo === 'mensal' ? 'block' : 'none';
+  document.getElementById('dre-campo-trimestre').style.display = tipo === 'trimestral' ? 'block' : 'none';
+}
+
+// Calcula [dataInicio, dataFim] (strings AAAA-MM-DD) do período escolhido
+function calcularIntervaloDRE() {
+  const tipo = document.getElementById('dre-tipo-periodo').value;
+  const ano = parseInt(document.getElementById('dre-ano').value);
+
+  if (tipo === 'mensal') {
+    const mes = parseInt(document.getElementById('dre-mes').value);
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    return {
+      inicio: `${ano}-${String(mes).padStart(2, '0')}-01`,
+      fim: `${ano}-${String(mes).padStart(2, '0')}-${ultimoDia}`,
+      label: `${MESES_PT[mes - 1]}/${ano}`
+    };
+  }
+
+  if (tipo === 'trimestral') {
+    const trimestre = parseInt(document.getElementById('dre-trimestre').value);
+    const mesInicio = (trimestre - 1) * 3 + 1;
+    const mesFim = mesInicio + 2;
+    const ultimoDia = new Date(ano, mesFim, 0).getDate();
+    return {
+      inicio: `${ano}-${String(mesInicio).padStart(2, '0')}-01`,
+      fim: `${ano}-${String(mesFim).padStart(2, '0')}-${ultimoDia}`,
+      label: `${trimestre}º Trimestre/${ano}`
+    };
+  }
+
+  // anual
+  return { inicio: `${ano}-01-01`, fim: `${ano}-12-31`, label: `Ano ${ano}` };
+}
+
+async function carregarDRE() {
+  const empresaId = empresaAtualId();
+  if (!empresaId) return;
+
+  const { inicio, fim, label } = calcularIntervaloDRE();
+
+  const { data: lancamentos, error } = await sb
+    .from('lancamentos')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .neq('status', 'cancelado')
+    .gte('vencimento', inicio)
+    .lte('vencimento', fim);
+
+  if (error) {
+    showToast('Erro ao gerar DRE: ' + error.message, 'error');
+    return;
+  }
+
+  const receitas = lancamentos.filter(l => l.tipo === 'receber');
+  const despesas = lancamentos.filter(l => l.tipo === 'pagar');
+
+  const totalReceitas = receitas.reduce((s, l) => s + Number(l.valor), 0);
+  const totalDespesas = despesas.reduce((s, l) => s + Number(l.valor), 0);
+  const resultado = totalReceitas - totalDespesas;
+
+  document.getElementById('dre-total-receitas').textContent = formatarMoeda(totalReceitas);
+  document.getElementById('dre-total-despesas').textContent = formatarMoeda(totalDespesas);
+  document.getElementById('dre-resultado').textContent = formatarMoeda(resultado);
+  document.getElementById('dre-resultado').style.color = resultado >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('dre-subtitle').textContent = `Demonstração de Resultado — ${label} — regime de competência`;
+
+  function agruparPorCategoria(lista, total) {
+    const grupos = {};
+    lista.forEach(l => {
+      const cat = l.categoria || 'Sem categoria';
+      grupos[cat] = (grupos[cat] || 0) + Number(l.valor);
+    });
+    return Object.entries(grupos)
+      .sort((a, b) => b[1] - a[1])
+      .map(([nome, valor]) => ({ nome, valor, pct: total > 0 ? (valor / total * 100) : 0 }));
+  }
+
+  const receitasPorCategoria = agruparPorCategoria(receitas, totalReceitas);
+  const despesasPorCategoria = agruparPorCategoria(despesas, totalDespesas);
+
+  const renderTabela = (grupos) => grupos.length
+    ? grupos.map(g => `<tr><td>${g.nome}</td><td>${formatarMoeda(g.valor)}</td><td>${g.pct.toFixed(1)}%</td></tr>`).join('')
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhum lançamento no período</td></tr>';
+
+  document.querySelector('#dre-receitas-table tbody').innerHTML = renderTabela(receitasPorCategoria);
+  document.querySelector('#dre-despesas-table tbody').innerHTML = renderTabela(despesasPorCategoria);
+
+  dreDadosAtuais = { label, totalReceitas, totalDespesas, resultado, receitasPorCategoria, despesasPorCategoria };
+}
+
+function exportarDRE() {
+  if (!dreDadosAtuais) {
+    showToast('Gere o DRE antes de exportar.', 'error');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 15;
+
+  function linha(texto, tamanho = 10, negrito = false) {
+    doc.setFontSize(tamanho);
+    doc.setFont(undefined, negrito ? 'bold' : 'normal');
+    doc.text(texto, 10, y);
+    y += tamanho === 16 ? 9 : 6;
+  }
+
+  const nomeEmpresa = document.getElementById('empresa-select').selectedOptions[0]?.textContent || '';
+
+  linha('Demonstração de Resultado do Exercício (DRE)', 16, true);
+  linha(nomeEmpresa, 11, true);
+  linha(`Período: ${dreDadosAtuais.label} — regime de competência`, 10);
+  linha(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 9);
+  y += 6;
+
+  linha(`(+) Receitas: ${formatarMoeda(dreDadosAtuais.totalReceitas)}`, 11, true);
+  dreDadosAtuais.receitasPorCategoria.forEach(g => linha(`     ${g.nome}: ${formatarMoeda(g.valor)} (${g.pct.toFixed(1)}%)`, 9));
+  y += 3;
+
+  linha(`(-) Despesas: ${formatarMoeda(dreDadosAtuais.totalDespesas)}`, 11, true);
+  dreDadosAtuais.despesasPorCategoria.forEach(g => linha(`     ${g.nome}: ${formatarMoeda(g.valor)} (${g.pct.toFixed(1)}%)`, 9));
+  y += 6;
+
+  linha(`(=) Resultado do período: ${formatarMoeda(dreDadosAtuais.resultado)}`, 13, true);
+
+  doc.save(`DRE_${nomeEmpresa.replace(/[^a-zA-Z0-9]/g, '_')}_${dreDadosAtuais.label.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  showToast('DRE exportado com sucesso!', 'success');
+}
 
 async function carregarFluxoCaixa(dias) {
   dias = dias || fluxoCaixaAtual.dias || 30;
@@ -5701,6 +5947,7 @@ function changeEmpresa(val) {
   if (screenAtiva && screenAtiva.id === 'screen-documentos') carregarDocumentosGerais();
   if (screenAtiva && screenAtiva.id === 'screen-recorrencias') carregarRecorrencias();
   if (screenAtiva && screenAtiva.id === 'screen-prazosfiscais') carregarPrazosFiscais();
+  if (screenAtiva && screenAtiva.id === 'screen-dre') carregarDRE();
   atualizarTodosBadges();
 }
 
