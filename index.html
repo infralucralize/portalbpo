@@ -8,18 +8,107 @@
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --navy: #0E1428;
-    --teal: #0C7488;
+    /* ===== MARCA (hues não alterados) ===== */
+    --navy: var(--navy);
+    --teal: var(--teal);
     --cyan: #92DCE5;
-    --red: #F72642;
-    --green: #1F9D6B;
-    --amber: #D98A1E;
-    --bg: #F5F7F8;
-    --card: #FFFFFF;
-    --border: #E3E7EA;
-    --text-main: #17202B;
-    --text-muted: #6B7686;
+
+    /* ===== SUPERFÍCIES ===== */
+    --bg: #F6F7F9;
+    --surface: #FFFFFF;
+    --surface-2: #FBFCFD;
+    --border: #E4E8EC;
+    --border-strong: #CFD6DD;
+
+    /* ===== TEXTO (3 níveis) ===== */
+    --text: var(--text);
+    --text-muted: #5C6875;
+    --text-subtle: #8A96A3;
+
+    /* ===== SEMÂNTICA (par cor/fundo) ===== */
+    --success: #157F56;   --success-bg: #E8F5EF;
+    --danger:  #C81232;   --danger-bg:  #FDECEF;
+    --warning: #A96A0C;   --warning-bg: #FDF3E3;
+    --info: var(--teal);  --info-bg:    #E9F5F8;
+
+    /* Cores saturadas: SOMENTE preenchimento de gráfico (não passam AA como texto) */
+    --chart-red: #F72642;
+    --chart-green: var(--chart-green);
+
+    /* ===== ESPAÇAMENTO (escala 4pt) ===== */
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+
+    /* ===== RAIOS ===== */
+    --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+
+    /* ===== ELEVAÇÃO ===== */
+    --sh-1: 0 1px 2px rgba(14,20,40,.05);
+    --sh-2: 0 4px 12px rgba(14,20,40,.07);
+    --sh-3: 0 12px 32px rgba(14,20,40,.12);
+
+    /* ===== INTERAÇÃO ===== */
+    --focus: 0 0 0 3px rgba(12,116,136,.28);
+    --t-fast: 120ms cubic-bezier(.2,0,.4,1);
+    --t: 180ms cubic-bezier(.2,0,.4,1);
+
+    /* ===== ALIASES RETROCOMPATÍVEIS =====
+       Mantidos porque há 100+ referências no CSS e nos style="" inline.
+       Apontam para os tokens novos, então a migração é gradual e segura. */
+    --card: var(--surface);
+    --text-main: var(--text);
+    --red: var(--danger);      /* acessível como texto (AA) */
+    --green: var(--success);   /* acessível como texto (AA) */
+    --amber: var(--warning);
   }
+
+  /* ===== TIPOGRAFIA: escala explícita ===== */
+  .num, .amount, .kpi-value, .ind-valor,
+  .fluxo-summary-value, .conc-value,
+  td .amount, #dre-total-receitas, #dre-total-despesas, #dre-resultado {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  p, .subtitle, .td-sub, .conc-meta { text-wrap: pretty; }
+
+  /* ===== MOVIMENTO REDUZIDO (acessibilidade) ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ===== FOCO VISÍVEL em tudo que é interativo ===== */
+  a:focus-visible, button:focus-visible, input:focus-visible,
+  select:focus-visible, textarea:focus-visible,
+  [tabindex]:focus-visible, .nav-item:focus-visible,
+  .filter-chip:focus-visible, .action-btn:focus-visible,
+  .user-chip:focus-visible, .logout-btn:focus-visible,
+  .notification-btn:focus-visible, .nav-group-header:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+    border-radius: var(--r-sm);
+  }
+
+  /* ===== UTILITÁRIO de visibilidade (substitui display:none inline) ===== */
+  .is-hidden { display: none !important; }
+
+  /* ===== ÍCONES SVG (substituem os emojis) ===== */
+  .icon {
+    width: 20px; height: 20px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vertical-align: middle;
+  }
+  .icon-sm { width: 16px; height: 16px; }
+  .icon-xs { width: 14px; height: 14px; stroke-width: 1.75; }
+  .icon svg, .icon use { pointer-events: none; }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -42,7 +131,7 @@
 
   .login-left {
     flex: 1;
-    background: linear-gradient(135deg, #0C7488 0%, #0E1428 60%);
+    background: linear-gradient(135deg, var(--teal) 0%, var(--navy) 60%);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -180,7 +269,7 @@
     border-radius: 8px;
     padding: 14px 16px;
     font-size: 12px;
-    color: #0C7488;
+    color: var(--teal);
     line-height: 1.6;
   }
   .login-demo-hint strong { display: block; margin-bottom: 6px; }
@@ -210,7 +299,7 @@
   }
   .demo-user-btn:hover { background: rgba(12,116,136,0.14); }
   .demo-user-btn .badge {
-    font-size: 9px;
+    font-size: 11px;
     padding: 2px 7px;
     border-radius: 10px;
     background: var(--teal);
@@ -257,7 +346,7 @@
   .brand span { color: var(--cyan); }
   .brand-sub {
     font-family: 'Poppins', sans-serif;
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.1em;
     color: rgba(255,255,255,0.4);
@@ -276,7 +365,7 @@
   .empresa-select label {
     display: block;
     color: var(--cyan);
-    font-size: 9px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin-bottom: 4px;
@@ -292,12 +381,12 @@
     font-weight: 500;
     cursor: pointer;
   }
-  .empresa-select select option { color: #17202B; background: #fff; }
+  .empresa-select select option { color: var(--text); background: #fff; }
 
   nav { flex: 1; padding: 8px 12px; }
 
   .nav-section-label {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -325,7 +414,7 @@
 
   .nav-badge {
     margin-left: auto;
-    font-size: 10px;
+    font-size: 11px;
     background: var(--red);
     color: #fff;
     padding: 1px 7px;
@@ -352,7 +441,7 @@
   .nav-group-header .nav-icon { font-size: 12px; }
   .nav-group-chevron {
     margin-left: auto;
-    font-size: 10px;
+    font-size: 11px;
     transition: transform 0.18s;
   }
   .nav-group.open .nav-group-chevron { transform: rotate(90deg); }
@@ -428,7 +517,7 @@
     z-index: 50;
   }
 
-  .topbar h1 { font-size: 18px; font-weight: 700; }
+  .topbar h1 { font-size: 22px; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; }
   .topbar .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
 
   .topbar-right { display: flex; align-items: center; gap: 12px; }
@@ -451,7 +540,7 @@
     padding: 0 3px;
     background: var(--red);
     border-radius: 8px;
-    font-size: 8px;
+    font-size: 11px;
     color: #fff;
     font-weight: 700;
     display: flex; align-items: center; justify-content: center;
@@ -485,18 +574,18 @@
   .notificacoes-lista { overflow-y: auto; max-height: 360px; }
   .notificacao-item {
     padding: 10px 14px;
-    border-bottom: 1px solid #F0F2F3;
+    border-bottom: 1px solid var(--border);
     cursor: pointer;
     font-size: 12px;
   }
-  .notificacao-item:hover { background: #F9FAFA; }
+  .notificacao-item:hover { background: var(--surface-2); }
   .notificacao-item.nao-lida { background: rgba(12,116,136,0.05); }
   .notificacao-item.nao-lida .notificacao-titulo::before {
-    content: '●'; color: var(--teal); margin-right: 5px; font-size: 9px;
+    content: '●'; color: var(--teal); margin-right: 5px; font-size: 10px;
   }
   .notificacao-titulo { font-weight: 700; margin-bottom: 2px; }
   .notificacao-mensagem { color: var(--text-muted); }
-  .notificacao-data { color: #B0B8BA; font-size: 10px; margin-top: 3px; }
+  .notificacao-data { color: var(--text-subtle); font-size: 11px; margin-top: 3px; }
 
   .user-chip {
     display: flex;
@@ -522,10 +611,10 @@
   }
 
   .user-name { font-weight: 600; font-size: 12px; }
-  .user-company { font-size: 10px; color: var(--text-muted); }
+  .user-company { font-size: 11px; color: var(--text-muted); }
 
   .role-badge {
-    font-size: 9px;
+    font-size: 11px;
     background: var(--cyan);
     color: var(--navy);
     padding: 2px 9px;
@@ -582,19 +671,21 @@
   }
 
   .kpi-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     font-weight: 600;
+    line-height: 1.3;
   }
 
   .kpi-value {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 700;
-    margin-top: 8px;
-    font-family: 'Comfortaa', sans-serif;
+    margin-top: var(--s2);
     letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--text);
   }
 
   .kpi-delta {
@@ -632,7 +723,7 @@
     margin-bottom: 16px;
   }
 
-  .card-header h3 { font-size: 14px; font-weight: 600; }
+  .card-header h3 { font-size: 15px; font-weight: 600; line-height: 1.3; }
   .card-link { font-size: 11px; color: var(--teal); font-weight: 500; cursor: pointer; text-decoration: none; }
   .card-link:hover { text-decoration: underline; }
 
@@ -674,11 +765,11 @@
   }
 
   .chart-bar:hover { opacity: 0.8; }
-  .chart-bar.entrada { background: var(--teal); width: 10px; }
-  .chart-bar.saida { background: var(--red); opacity: 0.75; width: 10px; }
+  .chart-bar.entrada { background: var(--teal); }
+  .chart-bar.saida { background: var(--chart-red); opacity: 0.85; }
 
   .chart-label {
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-muted);
     margin-top: 6px;
     white-space: nowrap;
@@ -748,7 +839,7 @@
 
   th {
     text-align: left;
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-muted);
@@ -756,7 +847,7 @@
     border-bottom: 2px solid var(--border);
     font-weight: 700;
     white-space: nowrap;
-    background: #FAFBFC;
+    background: var(--surface-2);
   }
 
   th:first-child { border-radius: 8px 0 0 0; }
@@ -770,7 +861,7 @@
   }
 
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #FAFBFC; }
+  tr:hover td { background: var(--surface-2); }
 
   .td-main { font-weight: 500; }
   .td-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
@@ -867,7 +958,7 @@
     gap: 12px;
   }
 
-  .toolbar h2 { font-size: 17px; font-weight: 700; }
+  .toolbar h2 { font-size: 19px; font-weight: 600; line-height: 1.3; letter-spacing: -0.01em; }
   .toolbar .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
   .toolbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
@@ -931,16 +1022,29 @@
   }
 
   .search-input {
-    padding: 7px 12px;
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
+    padding: 0 var(--s3) 0 34px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
     font-family: 'Poppins', sans-serif;
-    font-size: 12px;
-    color: var(--text-main);
-    width: 200px;
+    font-size: 13px;
+    color: var(--text);
+    width: 220px;
     margin-left: auto;
-    transition: border-color 0.15s;
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    /* Lupa como background SVG — substitui o emoji 🔍 do placeholder */
+    background-color: var(--surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238A96A3' stroke-width='1.75' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 10px center;
+    background-size: 16px 16px;
   }
+  .search-input:focus {
+    outline: none;
+    border-color: var(--teal);
+    box-shadow: var(--focus);
+  }
+  .search-input::placeholder { color: var(--text-subtle); }
 
   .search-input:focus { outline: none; border-color: var(--teal); }
   .search-input::placeholder { color: var(--text-muted); }
@@ -1078,7 +1182,7 @@
   /* ============================
      INDICADORES (cards pequenos)
   ============================ */
-  .indicadores-table table th { background: #F5F7F8; }
+  .indicadores-table table th { background: var(--surface-2); }
 
   .ind-valor { font-weight: 700; }
   .ind-meta-ok { color: var(--green); font-size: 12px; }
@@ -1110,9 +1214,30 @@
   }
 
   .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success::before { content: '✓'; width: 20px; height: 20px; background: var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-  .toast.info::before { content: 'ℹ'; width: 20px; height: 20px; background: var(--teal); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-  .toast.error::before { content: '✕'; width: 20px; height: 20px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+  /* Ícone do toast como máscara SVG — consistente com o resto do set,
+     em vez de glifos tipográficos que variam por fonte/SO */
+  .toast::before {
+    content: '';
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px 12px;
+  }
+  .toast.success::before {
+    background-color: var(--success);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  }
+  .toast.info::before {
+    background-color: var(--teal);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E%3C/svg%3E");
+  }
+  .toast.error::before {
+    background-color: var(--danger);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
+  }
 
   /* ============================
      EMPTY STATE
@@ -1137,6 +1262,54 @@
 </head>
 <body>
 
+<!-- ======================================================================
+     SPRITE DE ÍCONES (estilo Lucide, stroke 1.5, herdam currentColor)
+     Substitui os emojis: renderizavam colorido e diferente em cada SO.
+     Inline de propósito — mantém o arquivo único, sem dependência de CDN.
+     Uso: <svg class="icon"><use href="#i-nome"/></svg>
+====================================================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <g id="i-dashboard"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></g>
+    <g id="i-briefcase"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></g>
+    <g id="i-wallet"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></g>
+    <g id="i-arrow-down-circle"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8.5 12.5 12 16l3.5-3.5"/></g>
+    <g id="i-arrow-up-circle"><circle cx="12" cy="12" r="9"/><path d="M12 16V8M8.5 11.5 12 8l3.5 3.5"/></g>
+    <g id="i-repeat"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></g>
+    <g id="i-calendar"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></g>
+    <g id="i-bar-chart"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/></g>
+    <g id="i-activity"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></g>
+    <g id="i-arrow-left-right"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></g>
+    <g id="i-clipboard"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/></g>
+    <g id="i-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+    <g id="i-tag"><path d="M12.6 2.7a2 2 0 0 0-1.4-.6H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.5 8.5a2 2 0 0 0 2.8 0l6.8-6.8a2 2 0 0 0 0-2.8Z"/><circle cx="7" cy="7" r="1.2"/></g>
+    <g id="i-folder"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></g>
+    <g id="i-file-text"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></g>
+    <g id="i-settings"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6 1.65 1.65 0 0 0 10 3.09V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.63.68 1.1 1.33 1.1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></g>
+    <g id="i-building"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M9 6h.01M15 6h.01M9 10h.01M15 10h.01M9 14h.01M15 14h.01"/></g>
+    <g id="i-user"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></g>
+    <g id="i-history"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v4l3 2"/></g>
+    <g id="i-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></g>
+    <g id="i-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></g>
+    <g id="i-check"><path d="M20 6 9 17l-5-5"/></g>
+    <g id="i-x"><path d="M18 6 6 18M6 6l12 12"/></g>
+    <g id="i-refresh"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></g>
+    <g id="i-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></g>
+    <g id="i-paperclip"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l8.49-8.49a3.67 3.67 0 0 1 5.19 5.19l-8.49 8.48a1.83 1.83 0 0 1-2.6-2.6l7.6-7.59"/></g>
+    <g id="i-alert"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></g>
+    <g id="i-clock"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></g>
+    <g id="i-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></g>
+    <g id="i-lock"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>
+    <g id="i-search"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></g>
+    <g id="i-plus"><path d="M12 5v14M5 12h14"/></g>
+    <g id="i-trash"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></g>
+    <g id="i-edit"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></g>
+    <g id="i-eye"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></g>
+    <g id="i-chevron-right"><path d="m9 18 6-6-6-6"/></g>
+    <g id="i-inbox"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/></g>
+  </defs>
+</svg>
+
 <!-- ====================== LOGIN ====================== -->
 <div id="login-screen">
   <div class="login-left">
@@ -1145,19 +1318,19 @@
       <div class="login-tagline">BPO Financeiro — gestão completa do financeiro dos seus clientes em tempo real</div>
       <div class="login-decoration">
         <div class="login-deco-item">
-          <div class="login-deco-icon">◆</div>
+          <div class="login-deco-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-dashboard"/></svg></div>
           <div class="login-deco-text">Dashboard com KPIs em tempo real</div>
         </div>
         <div class="login-deco-item">
-          <div class="login-deco-icon">⇄</div>
+          <div class="login-deco-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left-right"/></svg></div>
           <div class="login-deco-text">Conciliação bancária automática</div>
         </div>
         <div class="login-deco-item">
-          <div class="login-deco-icon">∿</div>
+          <div class="login-deco-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-activity"/></svg></div>
           <div class="login-deco-text">Fluxo de caixa projetado</div>
         </div>
         <div class="login-deco-item">
-          <div class="login-deco-icon">🔒</div>
+          <div class="login-deco-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg></div>
           <div class="login-deco-text">Acesso por papel com RLS no banco</div>
         </div>
       </div>
@@ -1203,49 +1376,49 @@
 
     <nav>
       <div class="nav-item active" data-screen="dashboard">
-        <div class="nav-icon">◆</div>
+        <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-dashboard"/></svg></div>
         Dashboard KPI
       </div>
       <div class="nav-item lucralize-staff" data-screen="carteira" style="display:none">
-        <div class="nav-icon">🗂</div>
+        <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-briefcase"/></svg></div>
         Carteira de Clientes
       </div>
 
       <div class="nav-group" id="grupo-financeiro">
         <div class="nav-group-header" onclick="toggleNavGroup('grupo-financeiro')">
-          <div class="nav-icon">💰</div>
+          <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wallet"/></svg></div>
           Financeiro
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
           <div class="nav-item" data-screen="pagar">
-            <div class="nav-icon">↧</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-down-circle"/></svg></div>
             Contas a Pagar
             <span class="nav-badge" id="badge-pagar" style="display:none">0</span>
           </div>
           <div class="nav-item" data-screen="receber">
-            <div class="nav-icon">↥</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-circle"/></svg></div>
             Contas a Receber
             <span class="nav-badge" id="badge-receber" style="display:none">0</span>
           </div>
           <div class="nav-item" data-screen="recorrencias">
-            <div class="nav-icon">🔁</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-repeat"/></svg></div>
             Recorrências
           </div>
           <div class="nav-item" data-screen="prazosfiscais">
-            <div class="nav-icon">📅</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg></div>
             Prazos Fiscais
           </div>
           <div class="nav-item" data-screen="dre">
-            <div class="nav-icon">📊</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bar-chart"/></svg></div>
             DRE
           </div>
           <div class="nav-item" data-screen="fluxo">
-            <div class="nav-icon">∿</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-activity"/></svg></div>
             Fluxo de Caixa
           </div>
           <div class="nav-item" data-screen="conciliacao">
-            <div class="nav-icon">⇄</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left-right"/></svg></div>
             Conciliação Bancária
             <span class="nav-badge" id="badge-conc" style="display:none">0</span>
           </div>
@@ -1254,17 +1427,17 @@
 
       <div class="nav-group" id="grupo-cadastros">
         <div class="nav-group-header" onclick="toggleNavGroup('grupo-cadastros')">
-          <div class="nav-icon">🗒</div>
+          <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clipboard"/></svg></div>
           Cadastros
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
           <div class="nav-item" data-screen="parceiros">
-            <div class="nav-icon">🤝</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-users"/></svg></div>
             Fornecedores/Clientes
           </div>
           <div class="nav-item" data-screen="categorias">
-            <div class="nav-icon">🏷</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tag"/></svg></div>
             Categorias
           </div>
         </div>
@@ -1272,13 +1445,13 @@
 
       <div class="nav-group" id="grupo-documentos">
         <div class="nav-group-header" onclick="toggleNavGroup('grupo-documentos')">
-          <div class="nav-icon">📁</div>
+          <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder"/></svg></div>
           Documentos
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
           <div class="nav-item" data-screen="documentos">
-            <div class="nav-icon">📄</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-file-text"/></svg></div>
             Arquivos gerais
           </div>
         </div>
@@ -1286,21 +1459,21 @@
 
       <div class="nav-group admin-only" id="grupo-administracao" style="display:none">
         <div class="nav-group-header" onclick="toggleNavGroup('grupo-administracao')">
-          <div class="nav-icon">⚙</div>
+          <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"/></svg></div>
           Administração
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
           <div class="nav-item" data-screen="empresas">
-            <div class="nav-icon">🏢</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-building"/></svg></div>
             Empresas
           </div>
           <div class="nav-item" data-screen="usuarios">
-            <div class="nav-icon">👤</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg></div>
             Usuários
           </div>
           <div class="nav-item" data-screen="auditoria">
-            <div class="nav-icon">📜</div>
+            <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-history"/></svg></div>
             Auditoria
           </div>
         </div>
@@ -1309,7 +1482,7 @@
 
     <div class="sidebar-footer">
       <div class="logout-btn" onclick="handleLogout()">
-        <span>⎋</span> Sair da conta
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-log-out"/></svg> Sair da conta
       </div>
     </div>
   </div>
@@ -1323,7 +1496,7 @@
       </div>
       <div class="topbar-right" style="position:relative">
         <div class="notification-btn" title="Notificações" onclick="toggleNotificacoesPanel()">
-          🔔
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bell"/></svg>
           <div class="notification-badge" id="notification-badge" style="display:none">0</div>
         </div>
 
@@ -1333,7 +1506,7 @@
             <button onclick="marcarTodasNotificacoesComoLidas()">Marcar todas como lidas</button>
           </div>
           <div class="notificacoes-lista" id="notificacoes-lista">
-            <div style="padding:16px;text-align:center;color:#94A3B8;font-size:12px">Carregando...</div>
+            <div style="padding:16px;text-align:center;color:var(--text-subtle);font-size:12px">Carregando...</div>
           </div>
         </div>
 
@@ -1353,26 +1526,26 @@
       <!-- ============ DASHBOARD ============ -->
       <div class="screen active" id="screen-dashboard">
         <div class="kpi-grid">
-          <div class="kpi-card" style="--accent:#0C7488;--icon-bg:rgba(12,116,136,0.08)">
-            <div class="kpi-icon">💰</div>
+          <div class="kpi-card" style="--accent:var(--teal);--icon-bg:rgba(12,116,136,0.08)">
+            <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wallet"/></svg></div>
             <div class="kpi-label">Saldo consolidado</div>
             <div class="kpi-value" id="kpi-saldo">—</div>
             <div class="kpi-delta" id="kpi-saldo-delta"></div>
           </div>
-          <div class="kpi-card" style="--accent:#F62642;--icon-bg:rgba(246,38,66,0.07)">
-            <div class="kpi-icon">📤</div>
+          <div class="kpi-card" style="--accent:var(--chart-red);--icon-bg:rgba(246,38,66,0.07)">
+            <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-circle"/></svg></div>
             <div class="kpi-label">A pagar (30 dias)</div>
             <div class="kpi-value" id="kpi-pagar30">—</div>
             <div class="kpi-delta" id="kpi-pagar30-delta"></div>
           </div>
-          <div class="kpi-card" style="--accent:#1F9D6B;--icon-bg:rgba(31,157,107,0.08)">
-            <div class="kpi-icon">📥</div>
+          <div class="kpi-card" style="--accent:var(--chart-green);--icon-bg:rgba(31,157,107,0.08)">
+            <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-down-circle"/></svg></div>
             <div class="kpi-label">A receber (30 dias)</div>
             <div class="kpi-value" id="kpi-receber30">—</div>
             <div class="kpi-delta" id="kpi-receber30-delta"></div>
           </div>
-          <div class="kpi-card" style="--accent:#D98A1E;--icon-bg:rgba(217,138,30,0.08)">
-            <div class="kpi-icon">⚠️</div>
+          <div class="kpi-card" style="--accent:var(--warning);--icon-bg:rgba(217,138,30,0.08)">
+            <div class="kpi-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg></div>
             <div class="kpi-label">Inadimplência</div>
             <div class="kpi-value" id="kpi-inadimplencia">—</div>
             <div class="kpi-delta" id="kpi-inadimplencia-delta"></div>
@@ -1392,7 +1565,7 @@
                 Entradas
               </div>
               <div class="chart-legend-item">
-                <div class="legend-dot" style="background:var(--red);opacity:0.75"></div>
+                <div class="legend-dot" style="background:var(--chart-red);opacity:0.85"></div>
                 Saídas
               </div>
             </div>
@@ -1405,18 +1578,18 @@
             </div>
             <div class="aging-row">
               <div class="aging-label">0–30 dias</div>
-              <div class="aging-track"><div class="aging-fill" id="aging-fill-1" style="width:0%;background:#0C7488"></div></div>
-              <div class="aging-value" id="aging-value-1" style="color:#0C7488">R$ 0</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-1" style="width:0%;background:var(--teal)"></div></div>
+              <div class="aging-value" id="aging-value-1" style="color:var(--teal)">R$ 0</div>
             </div>
             <div class="aging-row">
               <div class="aging-label">31–60 dias</div>
-              <div class="aging-track"><div class="aging-fill" id="aging-fill-2" style="width:0%;background:#D98A1E"></div></div>
-              <div class="aging-value" id="aging-value-2" style="color:#D98A1E">R$ 0</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-2" style="width:0%;background:var(--warning)"></div></div>
+              <div class="aging-value" id="aging-value-2" style="color:var(--warning)">R$ 0</div>
             </div>
             <div class="aging-row">
               <div class="aging-label">61–90 dias</div>
-              <div class="aging-track"><div class="aging-fill" id="aging-fill-3" style="width:0%;background:#F62642"></div></div>
-              <div class="aging-value" id="aging-value-3" style="color:#F62642">R$ 0</div>
+              <div class="aging-track"><div class="aging-fill" id="aging-fill-3" style="width:0%;background:var(--chart-red)"></div></div>
+              <div class="aging-value" id="aging-value-3" style="color:var(--chart-red)">R$ 0</div>
             </div>
             <div class="aging-row">
               <div class="aging-label">&gt;90 dias</div>
@@ -1487,8 +1660,8 @@
             <div class="subtitle" id="carteira-subtitle">Visão consolidada de todas as empresas</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarCarteira()">📄 Exportar</button>
-            <input type="text" class="search-input" placeholder="🔍  Buscar empresa..." oninput="filtrarCarteira(this.value)">
+            <button class="btn ghost" onclick="exportarCarteira()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar</button>
+            <input type="text" class="search-input" placeholder="Buscar empresa..." oninput="filtrarCarteira(this.value)">
           </div>
         </div>
 
@@ -1506,7 +1679,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1521,8 +1694,8 @@
             <div class="subtitle" id="pagar-subtitle">18 lançamentos em aberto — R$ 128.450,00</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarContasPagar()">📄 Exportar</button>
-            <button class="btn can-create" onclick="abrirModalNovoLancamento('pagar')">+ Novo lançamento</button>
+            <button class="btn ghost" onclick="exportarContasPagar()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar</button>
+            <button class="btn can-create" onclick="abrirModalNovoLancamento('pagar')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Novo lançamento</button>
           </div>
         </div>
 
@@ -1532,7 +1705,7 @@
           <div class="filter-chip" data-filter-group="pagar" data-filter="atrasado" onclick="filterTable('pagar', 'atrasado', this)">Atrasados</div>
           <div class="filter-chip" data-filter-group="pagar" data-filter="aberto" onclick="filterTable('pagar', 'aberto', this)">Em aberto</div>
           <div class="filter-chip" data-filter-group="pagar" data-filter="pago" onclick="filterTable('pagar', 'pago', this)">Pagos</div>
-          <input type="text" class="search-input" placeholder="🔍  Buscar fornecedor..." oninput="searchTable('pagar-table', this.value)">
+          <input type="text" class="search-input" placeholder="Buscar fornecedor..." oninput="searchTable('pagar-table', this.value)">
         </div>
 
         <div class="card" style="padding:0;overflow:hidden">
@@ -1550,7 +1723,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1565,8 +1738,8 @@
             <div class="subtitle" id="receber-subtitle">27 lançamentos em aberto — R$ 214.900,00</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarContasReceber()">📄 Exportar</button>
-            <button class="btn can-create" onclick="abrirModalNovoLancamento('receber')">+ Novo lançamento</button>
+            <button class="btn ghost" onclick="exportarContasReceber()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar</button>
+            <button class="btn can-create" onclick="abrirModalNovoLancamento('receber')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Novo lançamento</button>
           </div>
         </div>
 
@@ -1575,7 +1748,7 @@
           <div class="filter-chip" data-filter-group="receber" data-filter="aberto" onclick="filterTable('receber', 'aberto', this)">A vencer</div>
           <div class="filter-chip" data-filter-group="receber" data-filter="inadimplente" onclick="filterTable('receber', 'inadimplente', this)">Inadimplentes</div>
           <div class="filter-chip" data-filter-group="receber" data-filter="recebido" onclick="filterTable('receber', 'recebido', this)">Recebidos</div>
-          <input type="text" class="search-input" placeholder="🔍  Buscar cliente..." oninput="searchTable('receber-table', this.value)">
+          <input type="text" class="search-input" placeholder="Buscar cliente..." oninput="searchTable('receber-table', this.value)">
         </div>
 
         <div class="card" style="padding:0;overflow:hidden">
@@ -1592,7 +1765,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1607,8 +1780,8 @@
             <div class="subtitle" id="parceiros-subtitle">Cadastro de fornecedores e clientes</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarParceiros()">📄 Exportar</button>
-            <button class="btn can-create" onclick="abrirFormNovoParceiro()">+ Novo cadastro</button>
+            <button class="btn ghost" onclick="exportarParceiros()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar</button>
+            <button class="btn can-create" onclick="abrirFormNovoParceiro()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Novo cadastro</button>
           </div>
         </div>
 
@@ -1653,7 +1826,7 @@
           <div class="filter-chip active" data-filter-group="parceiros" data-filter="todos" onclick="filtrarParceiros('todos', this)">Todos</div>
           <div class="filter-chip" data-filter-group="parceiros" data-filter="fornecedor" onclick="filtrarParceiros('fornecedor', this)">Fornecedores</div>
           <div class="filter-chip" data-filter-group="parceiros" data-filter="cliente" onclick="filtrarParceiros('cliente', this)">Clientes</div>
-          <input type="text" class="search-input" placeholder="🔍  Buscar por nome..." oninput="buscarParceiros(this.value)">
+          <input type="text" class="search-input" placeholder="Buscar por nome..." oninput="buscarParceiros(this.value)">
         </div>
 
         <div class="card" style="padding:0;overflow:hidden">
@@ -1670,7 +1843,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1685,7 +1858,7 @@
             <div class="subtitle" id="categorias-subtitle">Plano de contas da empresa</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn can-create" onclick="abrirFormNovaCategoria()">+ Nova categoria</button>
+            <button class="btn can-create" onclick="abrirFormNovaCategoria()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Nova categoria</button>
           </div>
         </div>
 
@@ -1725,7 +1898,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1740,7 +1913,7 @@
             <div class="subtitle" id="documentos-subtitle">Guias, balanços, contratos e outros arquivos gerais</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn can-create" onclick="abrirFormNovoDocumento()">+ Enviar documento</button>
+            <button class="btn can-create" onclick="abrirFormNovoDocumento()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Enviar documento</button>
           </div>
         </div>
 
@@ -1758,7 +1931,7 @@
               <input type="file" id="documento-form-arquivo" multiple>
             </div>
           </div>
-          <div style="font-size:12px;color:#94A3B8;margin-top:-6px;margin-bottom:8px">
+          <div style="font-size:12px;color:var(--text-subtle);margin-top:-6px;margin-bottom:8px">
             Tipos aceitos: PDF, JPG, PNG ou XML — máximo 5MB por arquivo. Pode selecionar mais de um.
           </div>
           <div class="modal-footer" style="padding:12px 0 0">
@@ -1783,7 +1956,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1798,7 +1971,7 @@
             <div class="subtitle" id="recorrencias-subtitle">Lançamentos que se repetem todo mês</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn can-create" onclick="abrirFormNovaRecorrencia()">+ Nova recorrência</button>
+            <button class="btn can-create" onclick="abrirFormNovaRecorrencia()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Nova recorrência</button>
           </div>
         </div>
 
@@ -1873,7 +2046,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1888,7 +2061,7 @@
             <div class="subtitle" id="prazosfiscais-subtitle">Obrigações fiscais recorrentes (DAS, DCTF, etc.)</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn can-create" onclick="abrirFormNovoPrazoFiscal()">+ Novo prazo</button>
+            <button class="btn can-create" onclick="abrirFormNovoPrazoFiscal()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Novo prazo</button>
           </div>
         </div>
 
@@ -1948,7 +2121,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1963,7 +2136,7 @@
             <div class="subtitle" id="dre-subtitle">Demonstração de Resultado — regime de competência</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarDRE()">📄 Exportar PDF</button>
+            <button class="btn ghost" onclick="exportarDRE()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar PDF</button>
           </div>
         </div>
 
@@ -2008,15 +2181,15 @@
         </div>
 
         <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-          <div class="kpi-card" style="--accent:#1F9D6B">
+          <div class="kpi-card" style="--accent:var(--chart-green)">
             <div class="kpi-label">Receitas do período</div>
             <div class="kpi-value" id="dre-total-receitas" style="color:var(--green)">—</div>
           </div>
-          <div class="kpi-card" style="--accent:#F62642">
+          <div class="kpi-card" style="--accent:var(--chart-red)">
             <div class="kpi-label">Despesas do período</div>
             <div class="kpi-value" id="dre-total-despesas" style="color:var(--red)">—</div>
           </div>
-          <div class="kpi-card" style="--accent:#0C7488">
+          <div class="kpi-card" style="--accent:var(--teal)">
             <div class="kpi-label">Resultado do período</div>
             <div class="kpi-value" id="dre-resultado">—</div>
           </div>
@@ -2028,7 +2201,7 @@
             <div class="table-wrapper">
               <table id="dre-receitas-table">
                 <thead><tr><th>Categoria</th><th>Valor</th><th>%</th></tr></thead>
-                <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Clique em "Gerar"</td></tr></tbody>
+                <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Clique em "Gerar"</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -2037,7 +2210,7 @@
             <div class="table-wrapper">
               <table id="dre-despesas-table">
                 <thead><tr><th>Categoria</th><th>Valor</th><th>%</th></tr></thead>
-                <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Clique em "Gerar"</td></tr></tbody>
+                <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Clique em "Gerar"</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -2052,7 +2225,7 @@
             <div class="subtitle" id="fluxo-subtitle">Realizado × Projetado — próximos 30 dias</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarFluxoCaixa()">📊 Exportar CSV</button>
+            <button class="btn ghost" onclick="exportarFluxoCaixa()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar CSV</button>
             <select id="fluxo-periodo-select" onchange="carregarFluxoCaixa(parseInt(this.value))" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px">
               <option value="7">Próximos 7 dias</option>
               <option value="14">Próximos 14 dias</option>
@@ -2089,7 +2262,7 @@
               Entradas previstas
             </div>
             <div class="chart-legend-item">
-              <div class="legend-dot" style="background:var(--red);opacity:0.75"></div>
+              <div class="legend-dot" style="background:var(--chart-red);opacity:0.85"></div>
               Saídas previstas
             </div>
           </div>
@@ -2110,7 +2283,7 @@
                   </tr>
                 </thead>
                 <tbody id="fluxo-entradas-tbody">
-                  <tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Carregando...</td></tr>
+                  <tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Carregando...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2130,7 +2303,7 @@
                   </tr>
                 </thead>
                 <tbody id="fluxo-saidas-tbody">
-                  <tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Carregando...</td></tr>
+                  <tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Carregando...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2149,9 +2322,9 @@
             <select id="conta-bancaria-select" onchange="onTrocarContaBancaria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;min-width:200px">
               <option value="">Carregando contas...</option>
             </select>
-            <button class="btn ghost can-approve" onclick="abrirFormNovaContaBancaria()">+ Nova conta</button>
-            <button class="btn ghost" onclick="carregarConciliacao()">🔄 Atualizar</button>
-            <button class="btn can-approve" onclick="abrirModalLancarExtrato()">+ Lançar item</button>
+            <button class="btn ghost can-approve" onclick="abrirFormNovaContaBancaria()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Nova conta</button>
+            <button class="btn ghost" onclick="carregarConciliacao()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-refresh"/></svg> Atualizar</button>
+            <button class="btn can-approve" onclick="abrirModalLancarExtrato()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Lançar item</button>
           </div>
         </div>
 
@@ -2192,17 +2365,17 @@
         </div>
 
         <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
-          <div class="kpi-card" style="--accent:#D98A1E">
+          <div class="kpi-card" style="--accent:var(--warning)">
             <div class="kpi-label">Pendentes</div>
             <div class="kpi-value" id="conc-kpi-pendentes">—</div>
             <div class="kpi-delta neutral">Itens aguardando</div>
           </div>
-          <div class="kpi-card" style="--accent:#1F9D6B">
+          <div class="kpi-card" style="--accent:var(--chart-green)">
             <div class="kpi-label">Conciliados (mês)</div>
             <div class="kpi-value" id="conc-kpi-mes">—</div>
             <div class="kpi-delta neutral" id="conc-kpi-taxa"></div>
           </div>
-          <div class="kpi-card" style="--accent:#0C7488">
+          <div class="kpi-card" style="--accent:var(--teal)">
             <div class="kpi-label">Saldo da conta</div>
             <div class="kpi-value" id="conc-kpi-saldo">—</div>
             <div class="kpi-delta neutral">Saldo inicial + movimentos</div>
@@ -2210,7 +2383,7 @@
         </div>
 
         <div class="card" id="conciliacao-container">
-          <div style="text-align:center;padding:24px;color:#94A3B8">Carregando...</div>
+          <div style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</div>
         </div>
       </div>
 
@@ -2222,7 +2395,7 @@
             <div class="subtitle" id="empresas-subtitle">Gestão das empresas atendidas</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn" onclick="abrirFormNovaEmpresa()">+ Nova empresa</button>
+            <button class="btn" onclick="abrirFormNovaEmpresa()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Nova empresa</button>
           </div>
         </div>
 
@@ -2268,7 +2441,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2283,7 +2456,7 @@
             <div class="subtitle" id="usuarios-subtitle">Gestão de acessos ao portal</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn" onclick="abrirFormNovoUsuario()">+ Novo usuário</button>
+            <button class="btn" onclick="abrirFormNovoUsuario()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Novo usuário</button>
           </div>
         </div>
 
@@ -2302,7 +2475,7 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Senha <span id="usuario-form-senha-hint" style="font-weight:400;color:#94A3B8"></span></label>
+              <label>Senha <span id="usuario-form-senha-hint" style="font-weight:400;color:var(--text-subtle)"></span></label>
               <input type="text" id="usuario-form-senha" placeholder="Mínimo 6 caracteres">
             </div>
             <div class="form-group">
@@ -2340,7 +2513,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2355,7 +2528,7 @@
             <div class="subtitle" id="auditoria-subtitle">Histórico de alterações no sistema</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="exportarAuditoria()">📄 Exportar</button>
+            <button class="btn ghost" onclick="exportarAuditoria()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Exportar</button>
             <select id="auditoria-filtro-tabela" onchange="carregarAuditoria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px">
               <option value="">Todas as tabelas</option>
               <option value="lancamentos">Lançamentos</option>
@@ -2386,7 +2559,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2402,7 +2575,7 @@
   <div class="modal">
     <div class="modal-header">
       <div><h3>Detalhe da alteração</h3></div>
-      <button class="modal-close" onclick="closeModal('modal-auditoria-detalhe')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-auditoria-detalhe')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="modal-body">
       <div id="auditoria-detalhe-conteudo" style="font-size:12px"></div>
@@ -2422,7 +2595,7 @@
         <h3>Novo lançamento a pagar</h3>
         <p>Preencha os dados do compromisso financeiro</p>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-pagar')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-pagar')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -2471,7 +2644,7 @@
       <div class="form-group">
         <label>Anexar comprovante/NF (opcional)</label>
         <input type="file" id="pagar-form-anexos" multiple>
-        <div style="font-size:12px;color:#94A3B8;margin-top:4px">
+        <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">
           Tipos aceitos: PDF, JPG, PNG ou XML — máximo 5MB por arquivo. Pode selecionar mais de um.
         </div>
       </div>
@@ -2491,7 +2664,7 @@
         <h3>Novo lançamento a receber</h3>
         <p>Registre um novo título a receber</p>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-receber')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-receber')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -2527,7 +2700,7 @@
       <div class="form-group">
         <label>Anexar documento (opcional)</label>
         <input type="file" id="receber-form-anexos" multiple>
-        <div style="font-size:12px;color:#94A3B8;margin-top:4px">
+        <div style="font-size:12px;color:var(--text-subtle);margin-top:4px">
           Tipos aceitos: PDF, JPG, PNG ou XML — máximo 5MB por arquivo. Pode selecionar mais de um.
         </div>
       </div>
@@ -2547,22 +2720,22 @@
         <h3 id="detalhe-titulo">Detalhe do lançamento</h3>
         <p id="detalhe-subtitulo"></p>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-detalhe')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-detalhe')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="modal-body">
       <div id="detalhe-info" style="margin-bottom:20px"></div>
 
       <div style="border-top:1px solid #E5E9EA;padding-top:16px">
-        <h4 style="margin:0 0 12px;font-size:14px">📎 Anexos</h4>
+        <h4 style="margin:0 0 12px;font-size:14px"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-paperclip"/></svg> Anexos</h4>
         <div id="detalhe-anexos-lista" style="margin-bottom:14px">
-          <div style="color:#94A3B8;font-size:13px">Carregando...</div>
+          <div style="color:var(--text-subtle);font-size:13px">Carregando...</div>
         </div>
 
         <div class="can-create" style="display:flex;gap:8px;align-items:center">
           <input type="file" id="detalhe-anexo-input" multiple style="flex:1;font-size:13px">
           <button class="btn" style="white-space:nowrap" onclick="enviarAnexo()">Enviar</button>
         </div>
-        <div style="font-size:12px;color:#94A3B8;margin-top:6px" class="can-create">
+        <div style="font-size:12px;color:var(--text-subtle);margin-top:6px" class="can-create">
           Tipos aceitos: PDF, JPG, PNG ou XML — máximo 5MB por arquivo.
         </div>
       </div>
@@ -2581,7 +2754,7 @@
         <h3>Lançar item do extrato</h3>
         <p>Registre um movimento bancário para conciliação</p>
       </div>
-      <button class="modal-close" onclick="closeModal('modal-lancar-extrato')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-lancar-extrato')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -2618,7 +2791,7 @@
   <div class="modal" style="max-width:400px">
     <div class="modal-header">
       <div><h3 id="data-pagamento-titulo">Confirmar data</h3></div>
-      <button class="modal-close" onclick="closeModal('modal-data-pagamento')">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-data-pagamento')"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -2929,11 +3102,11 @@ async function carregarContasPagar() {
   const empresaId = empresaAtualId();
   const tbody = document.querySelector('#pagar-table tbody');
   if (!empresaId) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Selecione uma empresa</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Selecione uma empresa</td></tr>';
     return;
   }
 
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data: lancamentos, error } = await sb
     .from('lancamentos')
@@ -2950,7 +3123,7 @@ async function carregarContasPagar() {
   }
 
   if (!lancamentos.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum lançamento encontrado</td></tr>';
   } else {
     tbody.innerHTML = lancamentos.map(l => {
       const podeAprovar = l.status === 'aguardando_aprovacao';
@@ -2969,8 +3142,8 @@ async function carregarContasPagar() {
           <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
           <td>
             <div style="display:flex;gap:5px">
-              ${podeAprovar ? `<button class="action-btn approve can-approve" onclick="aprovarLancamento('${l.id}')">✓ Aprovar</button>` : ''}
-              ${podePagar ? `<button class="action-btn approve can-approve" onclick="marcarComoPago('${l.id}')">✓ Marcar como pago</button>` : ''}
+              ${podeAprovar ? `<button class="action-btn approve can-approve" onclick="aprovarLancamento('${l.id}')"><svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg> Aprovar</button>` : ''}
+              ${podePagar ? `<button class="action-btn approve can-approve" onclick="marcarComoPago('${l.id}')"><svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg> Marcar como pago</button>` : ''}
               <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'pagar')">Ver</button>
               <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', 'pagar')">Excluir</button>
             </div>
@@ -2999,11 +3172,11 @@ async function carregarContasReceber() {
   const empresaId = empresaAtualId();
   const tbody = document.querySelector('#receber-table tbody');
   if (!empresaId) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Selecione uma empresa</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Selecione uma empresa</td></tr>';
     return;
   }
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data: lancamentos, error } = await sb
     .from('lancamentos')
@@ -3020,7 +3193,7 @@ async function carregarContasReceber() {
   }
 
   if (!lancamentos.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhum lançamento encontrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum lançamento encontrado</td></tr>';
   } else {
     const hoje = new Date();
     tbody.innerHTML = lancamentos.map(l => {
@@ -3043,7 +3216,7 @@ async function carregarContasReceber() {
           <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
           <td>
             <div style="display:flex;gap:5px">
-              ${podeReceber ? `<button class="action-btn approve can-approve" onclick="marcarComoRecebido('${l.id}')">✓ Marcar como recebido</button>` : ''}
+              ${podeReceber ? `<button class="action-btn approve can-approve" onclick="marcarComoRecebido('${l.id}')"><svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg> Marcar como recebido</button>` : ''}
               <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'receber')">Ver</button>
               <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', 'receber')">Excluir</button>
             </div>
@@ -3186,7 +3359,7 @@ function carregarIndicadores(lancs) {
     ok: '<span class="ind-meta-ok">● Dentro da meta</span>',
     bad: '<span class="ind-meta-bad">● Acima da meta</span>',
     warn: '<span class="ind-meta-warn">● Atenção</span>',
-    none: '<span style="color:#94A3B8">Sem dados no mês</span>',
+    none: '<span style="color:var(--text-subtle)">Sem dados no mês</span>',
   }[chave] || '');
 
   document.getElementById('ind-pmr-situacao').innerHTML =
@@ -3305,7 +3478,7 @@ async function carregarDRE() {
 
   const renderTabela = (grupos) => grupos.length
     ? grupos.map(g => `<tr><td>${esc(g.nome)}</td><td>${formatarMoeda(g.valor)}</td><td>${g.pct.toFixed(1)}%</td></tr>`).join('')
-    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhum lançamento no período</td></tr>';
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Nenhum lançamento no período</td></tr>';
 
   document.querySelector('#dre-receitas-table tbody').innerHTML = renderTabela(receitasPorCategoria);
   document.querySelector('#dre-despesas-table tbody').innerHTML = renderTabela(despesasPorCategoria);
@@ -3406,7 +3579,7 @@ async function carregarFluxoCaixa(dias) {
           <td><span class="amount positive">${formatarMoeda(l.valor)}</span></td>
         </tr>
       `).join('')
-    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhuma entrada prevista</td></tr>';
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Nenhuma entrada prevista</td></tr>';
 
   const saidasTbody = document.getElementById('fluxo-saidas-tbody');
   saidasTbody.innerHTML = saidasPrevistas.length
@@ -3417,7 +3590,7 @@ async function carregarFluxoCaixa(dias) {
           <td><span class="amount negative">${formatarMoeda(l.valor)}</span></td>
         </tr>
       `).join('')
-    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhuma saída prevista</td></tr>';
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Nenhuma saída prevista</td></tr>';
 
   buildFlowChartReal('flow-chart-big', dias > 60 ? 60 : dias, 160, lancs);
 }
@@ -3521,7 +3694,7 @@ async function carregarConciliacao() {
   // Garante que o seletor de contas está populado (ex: primeira vez que a tela abre)
   if (!contasBancariasCarregadas.length) await carregarContasBancariasSelect();
 
-  container.innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8">Carregando...</div>';
+  container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</div>';
 
   // Nome da empresa no subtítulo
   const sel = document.getElementById('empresa-select');
@@ -3530,7 +3703,7 @@ async function carregarConciliacao() {
     nomeEmpresaSelecionada ? `${nomeEmpresaSelecionada} — extrato × lançamentos internos` : 'Extrato bancário × lançamentos internos';
 
   if (!contaBancariaAtualId) {
-    container.innerHTML = '<div style="text-align:center;padding:32px;color:#94A3B8">Nenhuma conta bancária cadastrada para esta empresa.<br>Cadastre uma conta pra começar a conciliar o extrato.</div>';
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-subtle)">Nenhuma conta bancária cadastrada para esta empresa.<br>Cadastre uma conta pra começar a conciliar o extrato.</div>';
     document.getElementById('conc-kpi-pendentes').textContent = '—';
     document.getElementById('conc-kpi-mes').textContent = '—';
     document.getElementById('conc-kpi-taxa').textContent = '';
@@ -3592,7 +3765,7 @@ async function carregarConciliacao() {
           <div class="conc-right">
             <div class="conc-value ${classeValor}">${sinal} ${valorFmt}</div>
             <div class="conc-actions">
-              <button class="action-btn approve can-approve" onclick="conciliarItemReal('${item.id}')">✓ Conciliar</button>
+              <button class="action-btn approve can-approve" onclick="conciliarItemReal('${item.id}')"><svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg> Conciliar</button>
             </div>
           </div>
         </div>
@@ -3613,15 +3786,15 @@ async function carregarConciliacao() {
   };
 
   let html = '';
-  html += `<div class="conc-section-title">⏳ Pendentes de conciliação (${pendentes.length})</div>`;
+  html += `<div class="conc-section-title"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clock"/></svg> Pendentes de conciliação (${pendentes.length})</div>`;
   html += pendentes.length
     ? pendentes.map(i => renderItem(i, true)).join('')
-    : '<div style="padding:16px;color:#94A3B8">Nenhum item pendente</div>';
+    : '<div style="padding:16px;color:var(--text-subtle)">Nenhum item pendente</div>';
 
-  html += `<div class="conc-section-title" style="margin-top:24px">✅ Conciliados recentemente</div>`;
+  html += `<div class="conc-section-title" style="margin-top:24px"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check-circle"/></svg> Conciliados recentemente</div>`;
   html += conciliados.length
     ? conciliados.slice(0, 10).map(i => renderItem(i, false)).join('')
-    : '<div style="padding:16px;color:#94A3B8">Nenhum item conciliado ainda</div>';
+    : '<div style="padding:16px;color:var(--text-subtle)">Nenhum item conciliado ainda</div>';
 
   container.innerHTML = html;
 
@@ -3868,7 +4041,7 @@ async function carregarEmpresas() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma empresa cadastrada</td></tr>';
 
   // Também alimenta o seletor de empresa do formulário de usuários
   const sel = document.getElementById('usuario-form-empresa');
@@ -4132,7 +4305,7 @@ async function carregarUsuarios() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Nenhum usuário cadastrado</td></tr>';
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum usuário cadastrado</td></tr>';
 
   ultimosUsuariosCarregados = perfisData;
 
@@ -4255,7 +4428,7 @@ let ultimaCarteiraCarregada = [];
 
 async function carregarCarteira() {
   const tbody = document.querySelector('#carteira-table tbody');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data: empresas, error: errEmpresas } = await sb.from('empresas').select('*').order('nome');
   if (errEmpresas) {
@@ -4317,7 +4490,7 @@ function renderizarCarteira(linhas) {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma empresa cadastrada</td></tr>';
 }
 
 function filtrarCarteira(termo) {
@@ -4456,7 +4629,7 @@ async function carregarAuditoria() {
   const tbody = document.querySelector('#auditoria-table tbody');
   const filtro = document.getElementById('auditoria-filtro-tabela').value;
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   let query = sb.from('auditoria').select('*, perfis(nome)').order('created_at', { ascending: false }).limit(100);
   if (filtro) query = query.eq('tabela', filtro);
@@ -4500,7 +4673,7 @@ async function carregarAuditoria() {
           <td><button class="action-btn view" onclick="verDetalheAuditoria('${a.id}')">Ver detalhes</button></td>
         </tr>
       `).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhum registro encontrado</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum registro encontrado</td></tr>';
 }
 
 function exportarAuditoria() {
@@ -4536,8 +4709,8 @@ function verDetalheAuditoria(id) {
     <div style="margin-bottom:10px"><strong>Ação:</strong> ${obterAcaoLabel(registro)}</div>
     <div style="margin-bottom:10px"><strong>Usuário:</strong> ${registro.perfis?.nome || 'Sistema (automático)'}</div>
     <div style="margin-bottom:10px"><strong>Quando:</strong> ${new Date(registro.created_at).toLocaleString('pt-BR')}</div>
-    ${registro.dados_antes ? `<div style="margin-top:14px"><strong>Antes:</strong><pre style="background:#F5F7F8;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_antes, null, 2)}</pre></div>` : ''}
-    ${registro.dados_depois ? `<div style="margin-top:14px"><strong>Depois:</strong><pre style="background:#F5F7F8;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_depois, null, 2)}</pre></div>` : ''}
+    ${registro.dados_antes ? `<div style="margin-top:14px"><strong>Antes:</strong><pre style="background:var(--surface-2);padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_antes, null, 2)}</pre></div>` : ''}
+    ${registro.dados_depois ? `<div style="margin-top:14px"><strong>Depois:</strong><pre style="background:var(--surface-2);padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_depois, null, 2)}</pre></div>` : ''}
   `;
 
   openModal('modal-auditoria-detalhe');
@@ -4583,7 +4756,7 @@ async function abrirDetalheLancamento(lancamentoId, tipo) {
 
 async function carregarAnexosDoLancamento(lancamentoId) {
   const container = document.getElementById('detalhe-anexos-lista');
-  container.innerHTML = '<div style="color:#94A3B8;font-size:13px">Carregando...</div>';
+  container.innerHTML = '<div style="color:var(--text-subtle);font-size:13px">Carregando...</div>';
 
   const { data: anexos, error } = await sb
     .from('anexos')
@@ -4597,7 +4770,7 @@ async function carregarAnexosDoLancamento(lancamentoId) {
   }
 
   if (!anexos.length) {
-    container.innerHTML = '<div style="color:#94A3B8;font-size:13px">Nenhum anexo enviado ainda.</div>';
+    container.innerHTML = '<div style="color:var(--text-subtle);font-size:13px">Nenhum anexo enviado ainda.</div>';
     return;
   }
 
@@ -4606,10 +4779,10 @@ async function carregarAnexosDoLancamento(lancamentoId) {
   container.innerHTML = anexos.map(a => {
     const podeExcluir = podeExcluirTudo || a.uploaded_by === currentUser.id;
     return `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F0F2F3">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
         <div style="font-size:13px">
           <a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${esc(a.nome_arquivo)}</a>
-          <div style="color:#94A3B8;font-size:11px">${formatarData(a.created_at.slice(0, 10))}</div>
+          <div style="color:var(--text-subtle);font-size:11px">${formatarData(a.created_at.slice(0, 10))}</div>
         </div>
         ${podeExcluir ? `<button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirAnexo('${a.id}', '${a.storage_path}', '${lancamentoId}')">Excluir</button>` : ''}
       </div>
@@ -4921,7 +5094,7 @@ async function carregarParceiros() {
   const tbody = document.querySelector('#parceiros-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data, error } = await sb.from('parceiros').select('*').eq('empresa_id', empresaId).order('nome');
 
@@ -4954,7 +5127,7 @@ function renderizarParceiros(lista) {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhum cadastro encontrado</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum cadastro encontrado</td></tr>';
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5097,7 +5270,7 @@ async function carregarRecorrencias() {
   const tbody = document.querySelector('#recorrencias-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data, error } = await sb.from('recorrencias').select('*').eq('empresa_id', empresaId).order('descricao');
 
@@ -5126,7 +5299,7 @@ async function carregarRecorrencias() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma recorrência cadastrada</td></tr>';
+    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma recorrência cadastrada</td></tr>';
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5258,7 +5431,7 @@ async function carregarPrazosFiscais() {
   const tbody = document.querySelector('#prazosfiscais-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data, error } = await sb.from('prazos_fiscais').select('*').eq('empresa_id', empresaId).order('nome');
 
@@ -5292,7 +5465,7 @@ async function carregarPrazosFiscais() {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Nenhum prazo fiscal cadastrado</td></tr>';
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum prazo fiscal cadastrado</td></tr>';
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5489,7 +5662,7 @@ async function carregarDocumentosGerais() {
   const tbody = document.querySelector('#documentos-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   await buscarCategoriasDocumento();
   renderizarFiltrosDocumentos();
@@ -5527,7 +5700,7 @@ function renderizarDocumentos(lista) {
           </tr>
         `;
       }).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhum documento enviado ainda</td></tr>';
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhum documento enviado ainda</td></tr>';
 }
 
 function filtrarDocumentos(categoria, chip) {
@@ -5641,7 +5814,7 @@ async function carregarCategorias() {
   const tbody = document.querySelector('#categorias-table tbody');
   if (!empresaId) return;
 
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Carregando...</td></tr>';
 
   const { data, error } = await sb.from('categorias').select('*').eq('empresa_id', empresaId).order('nome');
 
@@ -5667,7 +5840,7 @@ async function carregarCategorias() {
           </td>
         </tr>
       `).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma categoria cadastrada</td></tr>';
+    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-subtle)">Nenhuma categoria cadastrada</td></tr>';
 
   if (currentUser) applyRolePermissions(currentUser.role);
 }
@@ -5997,7 +6170,7 @@ async function carregarNotificacoes() {
 
   const lista = document.getElementById('notificacoes-lista');
   if (!notificacoes.length) {
-    lista.innerHTML = '<div style="padding:16px;text-align:center;color:#94A3B8;font-size:12px">Nenhuma notificação ainda.</div>';
+    lista.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text-subtle);font-size:12px">Nenhuma notificação ainda.</div>';
     return;
   }
 
