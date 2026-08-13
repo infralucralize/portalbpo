@@ -2579,6 +2579,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // ============================================
 // CONEXÃO SUPABASE
@@ -3628,7 +3629,12 @@ async function carregarEmpresas() {
           <td>${REGIME_LABEL[e.regime_tributario] || '—'}</td>
           <td><span class="status-pill ${e.ativo ? 'status-pago' : 'status-atrasado'}">${e.ativo ? 'Ativa' : 'Inativa'}</span></td>
           <td>${formatarData(e.created_at.slice(0, 10))}</td>
-          <td><button class="action-btn view" onclick="abrirFormEdicaoEmpresa('${e.id}')">Editar</button></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="action-btn view" onclick="abrirFormEdicaoEmpresa('${e.id}')">Editar</button>
+              <button class="action-btn admin-only" style="color:var(--red);border-color:var(--red);display:none" onclick="confirmarExclusaoEmpresa('${e.id}', '${e.nome.replace(/'/g, "\\'")}')">Excluir</button>
+            </div>
+          </td>
         </tr>
       `).join('')
     : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
@@ -3692,6 +3698,160 @@ async function salvarNovaEmpresa() {
 
   showToast(id ? 'Empresa atualizada com sucesso!' : 'Empresa criada com sucesso!', 'success');
   fecharFormNovaEmpresa();
+  carregarEmpresas();
+}
+
+// ============================================
+// EXCLUSÃO DE EMPRESA (com backup automático em PDF)
+// ============================================
+function confirmarExclusaoEmpresa(id, nome) {
+  const confirmado = confirm(
+    `⚠️ ATENÇÃO: excluir "${nome}" é IRREVERSÍVEL.\n\n` +
+    `Isso vai apagar permanentemente TODOS os dados dessa empresa: ` +
+    `lançamentos, contas bancárias, conciliações, fornecedores/clientes, ` +
+    `categorias, recorrências, prazos fiscais, anexos e usuários vinculados.\n\n` +
+    `Um backup completo em PDF será gerado automaticamente antes da exclusão.\n\n` +
+    `Deseja continuar mesmo assim?`
+  );
+
+  if (confirmado) {
+    gerarBackupEExcluirEmpresa(id, nome);
+  }
+}
+
+async function gerarBackupEExcluirEmpresa(id, nome) {
+  showToast('Gerando backup, aguarde...', 'info');
+
+  // Busca todos os dados relacionados à empresa antes de apagar
+  const [
+    { data: empresa },
+    { data: lancamentos },
+    { data: contasBancarias },
+    { data: conciliacao },
+    { data: parceiros },
+    { data: categorias },
+    { data: recorrencias },
+    { data: prazosFiscais },
+    { data: anexos },
+    { data: usuariosVinculados }
+  ] = await Promise.all([
+    sb.from('empresas').select('*').eq('id', id).single(),
+    sb.from('lancamentos').select('*').eq('empresa_id', id),
+    sb.from('contas_bancarias').select('*').eq('empresa_id', id),
+    sb.from('conciliacao_bancaria').select('*').eq('empresa_id', id),
+    sb.from('parceiros').select('*').eq('empresa_id', id),
+    sb.from('categorias').select('*').eq('empresa_id', id),
+    sb.from('recorrencias').select('*').eq('empresa_id', id),
+    sb.from('prazos_fiscais').select('*').eq('empresa_id', id),
+    sb.from('anexos').select('*').eq('empresa_id', id),
+    sb.from('perfis').select('nome, email, role').eq('empresa_id', id)
+  ]);
+
+  // Monta o PDF
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 15;
+  const margemEsquerda = 10;
+  const larguraUtil = 190;
+
+  function novaLinha(altura = 6) {
+    y += altura;
+    if (y > 285) { doc.addPage(); y = 15; }
+  }
+
+  function titulo(texto) {
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text(texto, margemEsquerda, y);
+    novaLinha(8);
+    doc.setFont(undefined, 'normal');
+    doc.setFontSize(9);
+  }
+
+  function linha(texto) {
+    const partes = doc.splitTextToSize(texto, larguraUtil);
+    partes.forEach(p => {
+      doc.text(p, margemEsquerda, y);
+      novaLinha(5);
+    });
+  }
+
+  function secao(nomeSecao, lista, formatador) {
+    novaLinha(4);
+    titulo(`${nomeSecao} (${lista?.length || 0})`);
+    if (!lista || !lista.length) {
+      linha('Nenhum registro.');
+      return;
+    }
+    lista.forEach((item, i) => {
+      linha(`${i + 1}. ${formatador(item)}`);
+    });
+  }
+
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.text('Backup de Empresa — Portal BPO Lucralize', margemEsquerda, y);
+  novaLinha(8);
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margemEsquerda, y);
+  novaLinha(10);
+
+  titulo('Dados da Empresa');
+  linha(`Nome: ${empresa?.nome || nome}`);
+  linha(`CNPJ: ${empresa?.cnpj || '—'}`);
+  linha(`Regime tributário: ${REGIME_LABEL[empresa?.regime_tributario] || 'Não informado'}`);
+  linha(`Cadastrada em: ${empresa ? formatarData(empresa.created_at.slice(0, 10)) : '—'}`);
+
+  secao('Lançamentos', lancamentos, l =>
+    `${l.tipo === 'pagar' ? 'Pagar' : 'Receber'} | ${l.descricao} | ${formatarMoeda(l.valor)} | venc. ${formatarData(l.vencimento)} | status: ${statusLabelMap[l.status] || l.status}`
+  );
+
+  secao('Contas Bancárias', contasBancarias, c =>
+    `${c.banco} (${c.tipo_conta})${c.numero_conta ? ' - ' + c.numero_conta : ''} | saldo inicial: ${formatarMoeda(c.saldo_inicial)}`
+  );
+
+  secao('Conciliação Bancária', conciliacao, c =>
+    `${c.descricao_extrato} | ${formatarMoeda(c.valor)} | ${formatarData(c.data_movimento)} | status: ${c.status}`
+  );
+
+  secao('Fornecedores/Clientes', parceiros, p =>
+    `${p.nome} (${TIPO_PARCEIRO_LABEL[p.tipo] || p.tipo})${p.documento ? ' - ' + p.documento : ''}`
+  );
+
+  secao('Categorias', categorias, c => `${c.nome} (${TIPO_CATEGORIA_LABEL[c.tipo] || c.tipo})`);
+
+  secao('Recorrências', recorrencias, r =>
+    `${r.descricao} | ${r.tipo === 'pagar' ? 'Pagar' : 'Receber'} | ${formatarMoeda(r.valor)} | dia ${r.dia_vencimento}`
+  );
+
+  secao('Prazos Fiscais', prazosFiscais, p =>
+    `${p.nome} | ${p.periodicidade === 'mensal' ? 'Mensal, dia ' + p.dia_vencimento : 'Anual, ' + p.dia_vencimento + '/' + p.mes_vencimento}`
+  );
+
+  secao('Anexos (arquivos)', anexos, a => `${a.nome_arquivo} (${a.categoria_documento || 'vinculado a lançamento'})`);
+
+  secao('Usuários vinculados', usuariosVinculados, u => `${u.nome} — ${u.email} (${roleLabel(u.role)})`);
+
+  const nomeArquivo = `backup_${nome.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(nomeArquivo);
+
+  // Limpa os arquivos físicos no Storage (a linha do banco será
+  // removida em cascata, mas o arquivo em si não some sozinho)
+  if (anexos && anexos.length) {
+    const caminhos = anexos.map(a => a.storage_path);
+    await sb.storage.from('anexos').remove(caminhos).catch(() => {});
+  }
+
+  // Exclui a empresa de fato (cascata apaga o resto automaticamente)
+  const { error } = await sb.from('empresas').delete().eq('id', id);
+
+  if (error) {
+    showToast('Backup gerado, mas houve erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  showToast(`"${nome}" excluída. Backup salvo como ${nomeArquivo}.`, 'success');
   carregarEmpresas();
 }
 
