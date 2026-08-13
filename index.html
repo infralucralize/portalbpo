@@ -1814,6 +1814,37 @@
   </div>
 </div>
 
+<!-- ====================== MODAL: DETALHE DO LANÇAMENTO ====================== -->
+<div class="modal-overlay" id="modal-detalhe">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3 id="detalhe-titulo">Detalhe do lançamento</h3>
+        <p id="detalhe-subtitulo"></p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-detalhe')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="detalhe-info" style="margin-bottom:20px"></div>
+
+      <div style="border-top:1px solid #E5E9EA;padding-top:16px">
+        <h4 style="margin:0 0 12px;font-size:14px">📎 Anexos</h4>
+        <div id="detalhe-anexos-lista" style="margin-bottom:14px">
+          <div style="color:#94A3B8;font-size:13px">Carregando...</div>
+        </div>
+
+        <div class="can-create" style="display:flex;gap:8px;align-items:center">
+          <input type="file" id="detalhe-anexo-input" style="flex:1;font-size:13px">
+          <button class="btn" style="white-space:nowrap" onclick="enviarAnexo()">Enviar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-detalhe')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -2083,7 +2114,7 @@ async function carregarContasPagar() {
           <td>
             <div style="display:flex;gap:5px">
               ${podeAprovar ? `<button class="action-btn approve can-approve" onclick="aprovarLancamento('${l.id}')">✓ Aprovar</button>` : ''}
-              <button class="action-btn view">Ver</button>
+              <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'pagar')">Ver</button>
             </div>
           </td>
         </tr>
@@ -2145,7 +2176,7 @@ async function carregarContasReceber() {
           <td>${diasCol}</td>
           <td><span class="amount positive">${formatarMoeda(l.valor)}</span></td>
           <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
-          <td><button class="action-btn view">Ver</button></td>
+          <td><button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'receber')">Ver</button></td>
         </tr>
       `;
     }).join('');
@@ -2789,6 +2820,144 @@ async function excluirUsuario(userId, nome) {
 }
 
 // ============================================
+// DETALHE DO LANÇAMENTO + ANEXOS
+// ============================================
+let detalheLancamentoAtual = null; // { id, tipo, empresa_id }
+
+async function abrirDetalheLancamento(lancamentoId, tipo) {
+  const { data: l, error } = await sb.from('lancamentos').select('*').eq('id', lancamentoId).single();
+
+  if (error || !l) {
+    showToast('Erro ao carregar lançamento.', 'error');
+    return;
+  }
+
+  detalheLancamentoAtual = { id: l.id, tipo, empresa_id: l.empresa_id };
+
+  document.getElementById('detalhe-titulo').textContent = l.descricao;
+  document.getElementById('detalhe-subtitulo').textContent =
+    `${tipo === 'pagar' ? 'Conta a pagar' : 'Conta a receber'} · vencimento ${formatarData(l.vencimento)}`;
+
+  document.getElementById('detalhe-info').innerHTML = `
+    <div class="form-row">
+      <div><strong>Valor:</strong> ${formatarMoeda(l.valor)}</div>
+      <div><strong>Status:</strong> ${statusLabelMap[l.status] || l.status}</div>
+    </div>
+    <div class="form-row" style="margin-top:8px">
+      <div><strong>Categoria:</strong> ${l.categoria || '—'}</div>
+      <div><strong>Forma de pagamento:</strong> ${l.forma_pagamento || '—'}</div>
+    </div>
+    ${l.data_pagamento ? `<div style="margin-top:8px"><strong>Pago/recebido em:</strong> ${formatarData(l.data_pagamento)}</div>` : ''}
+    ${l.observacoes ? `<div style="margin-top:8px"><strong>Observações:</strong> ${l.observacoes}</div>` : ''}
+  `;
+
+  applyRolePermissions(currentUser.role); // garante que o input de upload respeita o role
+  openModal('modal-detalhe');
+  carregarAnexosDoLancamento(lancamentoId);
+}
+
+async function carregarAnexosDoLancamento(lancamentoId) {
+  const container = document.getElementById('detalhe-anexos-lista');
+  container.innerHTML = '<div style="color:#94A3B8;font-size:13px">Carregando...</div>';
+
+  const { data: anexos, error } = await sb
+    .from('anexos')
+    .select('*')
+    .eq('lancamento_id', lancamentoId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    container.innerHTML = `<div style="color:var(--red);font-size:13px">Erro ao carregar anexos: ${error.message}</div>`;
+    return;
+  }
+
+  if (!anexos.length) {
+    container.innerHTML = '<div style="color:#94A3B8;font-size:13px">Nenhum anexo enviado ainda.</div>';
+    return;
+  }
+
+  const podeExcluirTudo = ['admin_lucralize', 'equipe_lucralize'].includes(currentUser.role);
+
+  container.innerHTML = anexos.map(a => {
+    const podeExcluir = podeExcluirTudo || a.uploaded_by === currentUser.id;
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F0F2F3">
+        <div style="font-size:13px">
+          <a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${a.nome_arquivo}</a>
+          <div style="color:#94A3B8;font-size:11px">${formatarData(a.created_at.slice(0, 10))}</div>
+        </div>
+        ${podeExcluir ? `<button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirAnexo('${a.id}', '${a.storage_path}', '${lancamentoId}')">Excluir</button>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function enviarAnexo() {
+  const input = document.getElementById('detalhe-anexo-input');
+  const arquivo = input.files[0];
+
+  if (!arquivo) {
+    showToast('Selecione um arquivo antes de enviar.', 'error');
+    return;
+  }
+  if (!detalheLancamentoAtual) return;
+
+  const { id: lancamentoId, empresa_id: empresaId } = detalheLancamentoAtual;
+  const caminho = `${empresaId}/${lancamentoId}/${Date.now()}_${arquivo.name}`;
+
+  const { error: uploadError } = await sb.storage.from('anexos').upload(caminho, arquivo);
+  if (uploadError) {
+    showToast('Erro ao enviar arquivo: ' + uploadError.message, 'error');
+    return;
+  }
+
+  const { error: insertError } = await sb.from('anexos').insert({
+    empresa_id: empresaId,
+    lancamento_id: lancamentoId,
+    storage_path: caminho,
+    nome_arquivo: arquivo.name,
+    tipo_arquivo: arquivo.type,
+    tamanho_bytes: arquivo.size,
+    uploaded_by: currentUser.id
+  });
+
+  if (insertError) {
+    showToast('Erro ao registrar anexo: ' + insertError.message, 'error');
+    return;
+  }
+
+  input.value = '';
+  showToast('Anexo enviado com sucesso!', 'success');
+  carregarAnexosDoLancamento(lancamentoId);
+}
+
+async function baixarAnexo(storagePath) {
+  const { data, error } = await sb.storage.from('anexos').createSignedUrl(storagePath, 60);
+  if (error) {
+    showToast('Erro ao gerar link de download: ' + error.message, 'error');
+    return;
+  }
+  window.open(data.signedUrl, '_blank');
+}
+
+async function excluirAnexo(anexoId, storagePath, lancamentoId) {
+  if (!confirm('Excluir este anexo?')) return;
+
+  const { error: storageError } = await sb.storage.from('anexos').remove([storagePath]);
+  if (storageError) {
+    showToast('Erro ao excluir arquivo: ' + storageError.message, 'error');
+    return;
+  }
+
+  const { error: dbError } = await sb.from('anexos').delete().eq('id', anexoId);
+  if (dbError) {
+    showToast('Erro ao excluir registro: ' + dbError.message, 'error');
+    return;
+  }
+
+  showToast('Anexo excluído.', 'success');
+  carregarAnexosDoLancamento(lancamentoId);
+}
 // CHARTS
 // ============================================
 function buildCharts() {
