@@ -141,23 +141,31 @@
     overflow: hidden;
   }
 
+  /* Gradiente radial contido + textura de pontos, no lugar dos dois
+     círculos de borda grossa (que pareciam decorativos/genéricos) */
   .login-left::before {
     content: '';
     position: absolute;
-    width: 400px; height: 400px;
-    border-radius: 50%;
-    border: 80px solid rgba(145,219,228,0.08);
-    top: -100px; left: -100px;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 55% at 25% 15%, rgba(146,220,229,.14), transparent 70%),
+      radial-gradient(ellipse 60% 50% at 85% 90%, rgba(146,220,229,.10), transparent 70%);
+    pointer-events: none;
   }
 
   .login-left::after {
     content: '';
     position: absolute;
-    width: 300px; height: 300px;
-    border-radius: 50%;
-    border: 60px solid rgba(145,219,228,0.06);
-    bottom: -60px; right: -60px;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 30%, transparent 75%);
+    pointer-events: none;
   }
+
+  /* Conteúdo do painel fica acima da decoração */
+  .login-left > * { position: relative; z-index: 1; }
 
   .login-brand {
     font-family: 'Comfortaa', sans-serif;
@@ -303,6 +311,33 @@
   }
   .input-prefix input { padding-left: 40px; }
 
+  /* Erro de credencial inline, acima do botão */
+  .login-erro {
+    background: var(--danger-bg);
+    color: var(--red);
+    border: 1px solid rgba(247,38,66,.25);
+    border-radius: var(--r-sm);
+    padding: var(--s3);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: var(--s4);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s2);
+  }
+  .login-erro[hidden] { display: none; }
+
+  .login-link {
+    font-size: 13px;
+    color: var(--teal);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .login-link:hover { text-decoration: underline; }
+
+  /* Logo com respiro generoso, sem escalar por acidente */
+  .login-left img { height: 48px; width: auto; margin-bottom: var(--s6); }
+
   .login-btn {
     width: 100%;
     padding: 13px;
@@ -319,17 +354,6 @@
   }
   .login-btn:hover { background: #0a6274; }
 
-  .login-demo-hint {
-    margin-top: 24px;
-    background: #F0FAFE;
-    border: 1px solid #C3E9F0;
-    border-radius: 8px;
-    padding: 14px 16px;
-    font-size: 12px;
-    color: var(--teal);
-    line-height: 1.6;
-  }
-  .login-demo-hint strong { display: block; margin-bottom: 6px; }
 
   .demo-users {
     display: flex;
@@ -338,32 +362,6 @@
     margin-top: 10px;
   }
 
-  .demo-user-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    background: rgba(12,116,136,0.08);
-    border: 1px solid rgba(12,116,136,0.2);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 11px;
-    color: var(--teal);
-    font-family: 'Poppins', sans-serif;
-    font-weight: 500;
-    transition: background 0.12s;
-    text-align: left;
-  }
-  .demo-user-btn:hover { background: rgba(12,116,136,0.14); }
-  .demo-user-btn .badge {
-    font-size: 11px;
-    padding: 2px 7px;
-    border-radius: 10px;
-    background: var(--teal);
-    color: #fff;
-    font-weight: 600;
-    margin-left: auto;
-  }
 
   /* ============================
      APP LAYOUT
@@ -516,22 +514,7 @@
     border-top: 1px solid rgba(255,255,255,0.08);
   }
 
-  .realtime-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: rgba(255,255,255,0.45);
-    margin-bottom: 12px;
-  }
 
-  .realtime-dot {
-    width: 7px; height: 7px;
-    background: var(--green);
-    border-radius: 50%;
-    flex-shrink: 0;
-    animation: pulse 2s infinite;
-  }
   @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(31,157,107,0.5); }
     70% { box-shadow: 0 0 0 6px rgba(31,157,107,0); }
@@ -563,16 +546,31 @@
   }
 
   .topbar {
-    background: var(--card);
+    background: rgba(255,255,255,.86);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--border);
-    padding: 14px 28px;
+    padding: var(--s3) var(--s6);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: var(--s4);
     position: sticky;
     top: 0;
     z-index: 50;
   }
+
+  /* Breadcrumb acima do H1, montado a partir do grupo de nav ativo */
+  .breadcrumb {
+    font-size: 12px;
+    color: var(--text-subtle);
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+  }
+  .breadcrumb[hidden] { display: none; }
+  .breadcrumb .icon { width: 12px; height: 12px; opacity: .6; }
 
   .topbar h1 { font-size: 22px; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; }
   .topbar .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
@@ -691,9 +689,9 @@
   ============================ */
   .kpi-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--s4);
+    margin-bottom: var(--s5);
   }
 
   .kpi-card {
@@ -719,13 +717,14 @@
 
   .kpi-icon {
     position: absolute;
-    top: 16px; right: 16px;
-    width: 36px; height: 36px;
-    border-radius: 9px;
+    top: var(--s4); right: var(--s4);
+    width: 32px; height: 32px;
+    border-radius: var(--r-sm);
     background: var(--icon-bg, rgba(12,116,136,0.08));
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
+    color: var(--accent, var(--teal));
   }
+  .kpi-icon .icon { width: 18px; height: 18px; }
 
   .kpi-label {
     font-size: 12px;
@@ -746,12 +745,14 @@
   }
 
   .kpi-delta {
-    font-size: 11px;
-    margin-top: 6px;
+    font-size: 12px;
+    margin-top: var(--s2);
     font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--s1);
+    color: var(--text-muted);
+    min-height: 18px;
   }
   .kpi-delta.up { color: var(--green); }
   .kpi-delta.down { color: var(--red); }
@@ -790,9 +791,86 @@
   .chart-area {
     position: relative;
     height: 140px;
+  }
+
+  /* ============================
+     GRÁFICO SVG (eixo, barras, linha de saldo, tooltip)
+     Sem biblioteca externa — arquivo continua único.
+  ============================ */
+  .cg-wrap { position: relative; width: 100%; height: 100%; }
+  .cg-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  .cg-grid { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .cg-axis { fill: var(--text-subtle); font-size: 11px; font-family: 'Poppins', sans-serif; }
+  .cg-today {
+    stroke: var(--cyan);
+    stroke-width: 1.5;
+    stroke-dasharray: 3 3;
+    vector-effect: non-scaling-stroke;
+  }
+
+  @keyframes cg-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+  .cg-bar {
+    transform-origin: bottom;
+    animation: cg-grow 200ms cubic-bezier(.2,0,.4,1) both;
+    animation-delay: var(--d, 0ms);
+  }
+  .cg-in  { fill: var(--teal); }
+  .cg-out { fill: var(--chart-red); opacity: .85; }
+
+  .cg-line {
+    fill: none;
+    stroke: var(--navy);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    opacity: .55;
+  }
+
+  .cg-hit { fill: transparent; cursor: crosshair; }
+  .cg-hit:hover { fill: rgba(12,116,136,.05); }
+
+  .cg-tooltip {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+    background: var(--navy);
+    color: #fff;
+    border-radius: var(--r-sm);
+    padding: var(--s3);
+    font-size: 12px;
+    min-width: 180px;
+    box-shadow: var(--sh-2);
+  }
+  .cg-tt-data { font-weight: 700; margin-bottom: var(--s2); font-size: 12px; }
+  .cg-tt-linha {
     display: flex;
-    align-items: flex-end;
-    gap: 0;
+    align-items: center;
+    gap: var(--s2);
+    margin-top: 3px;
+    color: rgba(255,255,255,.75);
+  }
+  .cg-tt-linha strong {
+    margin-left: auto;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .cg-tt-total {
+    border-top: 1px solid rgba(255,255,255,.15);
+    margin-top: var(--s2);
+    padding-top: var(--s2);
+  }
+  .cg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .cg-dot-in { background: var(--cyan); }
+  .cg-dot-out { background: var(--chart-red); }
+
+  /* Linha de total do DRE: borda superior + fundo, hierarquia por peso */
+  .dre-total td {
+    border-top: 2px solid var(--border-strong);
+    background: var(--surface-2);
+    font-weight: 700;
+    color: var(--text);
   }
 
   .chart-col {
@@ -1393,34 +1471,186 @@
   .ind-meta-warn { color: var(--amber); font-size: 12px; }
   .ind-meta-bad { color: var(--red); font-size: 12px; }
 
+  /* ============================================================
+     RESPONSIVIDADE — 4 faixas conforme briefing
+  ============================================================ */
+
+  /* Conteúdo centralizado em telas muito largas */
+  @media (min-width: 1440px) {
+    .content { max-width: 1600px; margin: 0 auto; }
+  }
+
+  /* 1024–1439px: sidebar estreita (só ícones) + tooltip */
+  @media (max-width: 1439px) {
+    .sidebar { width: 72px; }
+    .sidebar .brand-sub,
+    .sidebar .empresa-select label,
+    .nav-item > :not(.nav-icon):not(.nav-badge),
+    .nav-group-header > :not(.nav-icon):not(.nav-group-chevron),
+    .logout-btn span:not(.icon) { display: none; }
+    .sidebar .brand img { height: 20px; }
+    .nav-item, .nav-group-header { justify-content: center; padding: 10px 0; position: relative; }
+    .nav-group-chevron { display: none; }
+    .nav-group-items { padding-left: 0; }
+    .nav-badge {
+      position: absolute; top: 4px; right: 10px;
+      margin-left: 0; padding: 0 4px; min-width: 16px;
+    }
+    .empresa-select { padding: var(--s2); }
+    .empresa-select select { font-size: 0; padding: 0; height: 34px; }
+    /* Tooltip do item quando a sidebar está colapsada */
+    .nav-item::after {
+      content: attr(data-screen);
+      position: absolute; left: calc(100% + 8px); top: 50%;
+      transform: translateY(-50%);
+      background: var(--navy); color: #fff;
+      padding: 4px 8px; border-radius: var(--r-sm);
+      font-size: 12px; white-space: nowrap;
+      opacity: 0; pointer-events: none;
+      transition: opacity var(--t-fast);
+      text-transform: capitalize;
+      z-index: 100;
+    }
+    .nav-item:hover::after { opacity: 1; }
+    .content { padding: var(--s4) var(--s5); }
+  }
+
+  /* 768–1023px: sidebar em drawer com overlay */
+  @media (max-width: 1023px) {
+    .sidebar {
+      position: fixed;
+      left: 0; top: 0; bottom: 0;
+      width: 260px;
+      transform: translateX(-100%);
+      transition: transform var(--t);
+      z-index: 300;
+    }
+    .sidebar.drawer-open { transform: translateX(0); }
+    .sidebar .brand-sub,
+    .sidebar .empresa-select label,
+    .nav-item > *, .nav-group-header > *,
+    .logout-btn span { display: revert; }
+    .nav-item, .nav-group-header { justify-content: flex-start; padding: 10px var(--s3); }
+    .nav-item::after { display: none; }
+    .empresa-select select { font-size: 13px; padding: 0 var(--s3); }
+    .main { margin-left: 0; }
+    .toolbar { flex-direction: column; align-items: stretch; gap: var(--s3); }
+    .toolbar-actions { flex-wrap: wrap; }
+    .search-input { width: 100%; margin-left: 0; }
+    .drawer-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(14,20,40,.45);
+      z-index: 250;
+      display: none;
+    }
+    .drawer-backdrop.show { display: block; }
+    .drawer-toggle { display: inline-flex !important; }
+  }
+
+  /* Botão de abrir o drawer (só aparece em tela pequena) */
+  .drawer-toggle {
+    display: none;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* <768px: alvos de toque maiores, form em 1 coluna, cards no lugar de tabela */
+  @media (max-width: 767px) {
+    .content { padding: var(--s3); }
+    .form-row { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: 1fr; }
+    .panel-grid, .panel-grid-equal, .fluxo-summary { grid-template-columns: 1fr; }
+    .btn, .action-btn { min-height: 44px; }
+    .nav-item, .nav-group-header { min-height: 44px; }
+    .modal { max-height: 92vh; }
+    .toast-container { left: var(--s3); right: var(--s3); max-width: none; top: var(--s3); }
+    .topbar { padding: var(--s3); }
+    .topbar h1 { font-size: 18px; }
+    .login-container { flex-direction: column; }
+  }
+
+  /* <900px: login empilha (marca reduzida no topo, formulário abaixo) */
+  @media (max-width: 899px) {
+    .login-container { flex-direction: column; }
+    .login-left { flex: 0 0 auto; padding: var(--s5); }
+    .login-left .login-decoration { display: none; }
+    .login-left img { height: 36px; margin-bottom: var(--s4); }
+    .login-tagline { font-size: 13px; }
+    .login-right { flex: 1; padding: var(--s5); }
+  }
+
   /* ============================
      TOAST NOTIFICATION
   ============================ */
-  .toast {
+  /* ============================
+     TOAST — fila no topo direito, com progresso e botão de fechar.
+     Máximo 3 simultâneos; aria-live no container.
+  ============================ */
+  .toast-container {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--navy);
-    color: #fff;
-    padding: 14px 18px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-    transform: translateY(80px);
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    top: var(--s5);
+    right: var(--s5);
     z-index: 999;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    max-width: 320px;
+    flex-direction: column;
+    gap: var(--s2);
+    pointer-events: none;
+    max-width: 360px;
   }
 
-  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast {
+    position: relative;
+    background: var(--navy);
+    color: #fff;
+    padding: var(--s3) var(--s4);
+    border-radius: var(--r-md);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+    box-shadow: var(--sh-2);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s3);
+    overflow: hidden;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(16px);
+    transition: opacity var(--t), transform var(--t);
+  }
+  .toast.show { opacity: 1; transform: translateX(0); }
+  .toast.hiding { opacity: 0; transform: translateX(16px); }
 
-  /* Ícone do toast como máscara SVG — consistente com o resto do set,
-     em vez de glifos tipográficos que variam por fonte/SO */
+  .toast-msg { flex: 1; min-width: 0; }
+
+  .toast-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.6);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .toast-close:hover { color: #fff; }
+  .toast-close .icon { width: 14px; height: 14px; }
+
+  /* Barra de progresso do auto-dismiss */
+  .toast-progress {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    background: rgba(255,255,255,.45);
+    animation: toast-progress 4s linear forwards;
+  }
+  @keyframes toast-progress { from { width: 100%; } to { width: 0%; } }
+
   .toast::before {
     content: '';
     width: 20px; height: 20px;
@@ -1431,7 +1661,7 @@
     background-size: 12px 12px;
   }
   .toast.success::before {
-    background-color: var(--success);
+    background-color: var(--green);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
   }
   .toast.info::before {
@@ -1439,21 +1669,14 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E%3C/svg%3E");
   }
   .toast.error::before {
-    background-color: var(--danger);
+    background-color: var(--red);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
   }
 
   /* ============================
      EMPTY STATE
   ============================ */
-  .empty-state {
-    text-align: center;
-    padding: 48px 24px;
-    color: var(--text-muted);
-  }
 
-  .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
-  .empty-state p { font-size: 14px; }
 
   /* ============================
      SCROLLBAR
@@ -1546,21 +1769,34 @@
     <p>Acesse o painel financeiro da Lucralize</p>
 
     <form id="login-form" onsubmit="handleLogin(event)">
-      <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="login-email" placeholder="seu@email.com" required>
+      <div class="form-group" id="login-email-group">
+        <label for="login-email">E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com"
+               autocomplete="username" required aria-describedby="login-email-erro">
+        <div class="field-error" id="login-email-erro">Informe um e-mail válido.</div>
       </div>
-      <div class="form-group">
-        <label>Senha</label>
-        <input type="password" id="login-password" placeholder="••••••••" required>
+      <div class="form-group" id="login-password-group">
+        <label for="login-password">Senha</label>
+        <input type="password" id="login-password" placeholder="••••••••"
+               autocomplete="current-password" required>
       </div>
-      <button type="submit" class="login-btn">Entrar no painel</button>
+
+      <!-- Erro de credencial inline, acima do botão (não só toast) -->
+      <div class="login-erro" id="login-erro" hidden></div>
+
+      <button type="submit" class="login-btn" id="login-btn">Entrar no painel</button>
+
+      <div style="text-align:center;margin-top:var(--s4)">
+        <a href="#" class="login-link" onclick="mostrarAjudaSenha(); return false;">Esqueci minha senha</a>
+      </div>
     </form>
   </div>
 </div>
 
 <!-- ====================== APP ====================== -->
 <div id="app">
+  <!-- Fundo escurecido do drawer da sidebar (só aparece em telas pequenas) -->
+  <div class="drawer-backdrop" id="drawer-backdrop" onclick="toggleDrawer()"></div>
 
   <!-- SIDEBAR -->
   <div class="sidebar">
@@ -1579,49 +1815,49 @@
     </div>
 
     <nav>
-      <div class="nav-item active" data-screen="dashboard">
+      <div class="nav-item active" role="button" tabindex="0" data-screen="dashboard" role="button" tabindex="0">
         <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-dashboard"/></svg></div>
         Dashboard KPI
       </div>
-      <div class="nav-item lucralize-staff" data-screen="carteira" style="display:none">
+      <div class="nav-item lucralize-staff" role="button" tabindex="0" data-screen="carteira" style="display:none">
         <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-briefcase"/></svg></div>
         Carteira de Clientes
       </div>
 
       <div class="nav-group" id="grupo-financeiro">
-        <div class="nav-group-header" onclick="toggleNavGroup('grupo-financeiro')">
+        <div class="nav-group-header" onclick="toggleNavGroup(\'grupo-financeiro\')" role="button" tabindex="0" aria-expanded="false" aria-controls="grupo-financeiro">
           <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wallet"/></svg></div>
           Financeiro
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
-          <div class="nav-item" data-screen="pagar">
+          <div class="nav-item" role="button" tabindex="0" data-screen="pagar">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-down-circle"/></svg></div>
             Contas a Pagar
             <span class="nav-badge" id="badge-pagar" style="display:none">0</span>
           </div>
-          <div class="nav-item" data-screen="receber">
+          <div class="nav-item" role="button" tabindex="0" data-screen="receber">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-circle"/></svg></div>
             Contas a Receber
             <span class="nav-badge" id="badge-receber" style="display:none">0</span>
           </div>
-          <div class="nav-item" data-screen="recorrencias">
+          <div class="nav-item" role="button" tabindex="0" data-screen="recorrencias">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-repeat"/></svg></div>
             Recorrências
           </div>
-          <div class="nav-item" data-screen="prazosfiscais">
+          <div class="nav-item" role="button" tabindex="0" data-screen="prazosfiscais">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-calendar"/></svg></div>
             Prazos Fiscais
           </div>
-          <div class="nav-item" data-screen="dre">
+          <div class="nav-item" role="button" tabindex="0" data-screen="dre">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bar-chart"/></svg></div>
             DRE
           </div>
-          <div class="nav-item" data-screen="fluxo">
+          <div class="nav-item" role="button" tabindex="0" data-screen="fluxo">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-activity"/></svg></div>
             Fluxo de Caixa
           </div>
-          <div class="nav-item" data-screen="conciliacao">
+          <div class="nav-item" role="button" tabindex="0" data-screen="conciliacao">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left-right"/></svg></div>
             Conciliação Bancária
             <span class="nav-badge" id="badge-conc" style="display:none">0</span>
@@ -1630,17 +1866,17 @@
       </div>
 
       <div class="nav-group" id="grupo-cadastros">
-        <div class="nav-group-header" onclick="toggleNavGroup('grupo-cadastros')">
+        <div class="nav-group-header" onclick="toggleNavGroup(\'grupo-cadastros\')" role="button" tabindex="0" aria-expanded="false" aria-controls="grupo-cadastros">
           <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clipboard"/></svg></div>
           Cadastros
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
-          <div class="nav-item" data-screen="parceiros">
+          <div class="nav-item" role="button" tabindex="0" data-screen="parceiros">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-users"/></svg></div>
             Fornecedores/Clientes
           </div>
-          <div class="nav-item" data-screen="categorias">
+          <div class="nav-item" role="button" tabindex="0" data-screen="categorias">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tag"/></svg></div>
             Categorias
           </div>
@@ -1648,13 +1884,13 @@
       </div>
 
       <div class="nav-group" id="grupo-documentos">
-        <div class="nav-group-header" onclick="toggleNavGroup('grupo-documentos')">
+        <div class="nav-group-header" onclick="toggleNavGroup(\'grupo-documentos\')" role="button" tabindex="0" aria-expanded="false" aria-controls="grupo-documentos">
           <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder"/></svg></div>
           Documentos
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
-          <div class="nav-item" data-screen="documentos">
+          <div class="nav-item" role="button" tabindex="0" data-screen="documentos">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-file-text"/></svg></div>
             Arquivos gerais
           </div>
@@ -1662,21 +1898,21 @@
       </div>
 
       <div class="nav-group admin-only" id="grupo-administracao" style="display:none">
-        <div class="nav-group-header" onclick="toggleNavGroup('grupo-administracao')">
+        <div class="nav-group-header" onclick="toggleNavGroup(\'grupo-administracao\')" role="button" tabindex="0" aria-expanded="false" aria-controls="grupo-administracao">
           <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"/></svg></div>
           Administração
           <span class="nav-group-chevron">›</span>
         </div>
         <div class="nav-group-items">
-          <div class="nav-item" data-screen="empresas">
+          <div class="nav-item" role="button" tabindex="0" data-screen="empresas">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-building"/></svg></div>
             Empresas
           </div>
-          <div class="nav-item" data-screen="usuarios">
+          <div class="nav-item" role="button" tabindex="0" data-screen="usuarios">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-user"/></svg></div>
             Usuários
           </div>
-          <div class="nav-item" data-screen="auditoria">
+          <div class="nav-item" role="button" tabindex="0" data-screen="auditoria">
             <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-history"/></svg></div>
             Auditoria
           </div>
@@ -1685,7 +1921,7 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="logout-btn" onclick="handleLogout()">
+      <div class="logout-btn" onclick="handleLogout()" role="button" tabindex="0">
         <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-log-out"/></svg> Sair da conta
       </div>
     </div>
@@ -1694,12 +1930,16 @@
   <!-- MAIN -->
   <div class="main">
     <div class="topbar">
-      <div>
+      <button class="drawer-toggle" onclick="toggleDrawer()" aria-label="Abrir menu">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-clipboard"/></svg>
+      </button>
+      <div style="flex:1;min-width:0">
+        <div class="breadcrumb" id="breadcrumb" hidden></div>
         <h1 id="screen-title">Dashboard KPI</h1>
         <div class="subtitle" id="screen-subtitle"></div>
       </div>
       <div class="topbar-right" style="position:relative">
-        <div class="notification-btn" title="Notificações" onclick="toggleNotificacoesPanel()">
+        <div class="notification-btn" title="Notificações" onclick="toggleNotificacoesPanel()" role="button" tabindex="0" aria-label="Notificações" aria-expanded="false" aria-controls="notificacoes-panel">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bell"/></svg>
           <div class="notification-badge" id="notification-badge" style="display:none">0</div>
         </div>
@@ -1714,7 +1954,7 @@
           </div>
         </div>
 
-        <div class="user-chip" id="user-chip">
+        <div class="user-chip" id="user-chip" role="button" tabindex="0" aria-label="Perfil do usuário">
           <div class="avatar" id="user-avatar">CG</div>
           <div>
             <div class="user-name" id="user-name">Carolina</div>
@@ -1904,11 +2144,11 @@
         </div>
 
         <div class="filters">
-          <div class="filter-chip active" data-filter-group="pagar" data-filter="todos" onclick="filterTable('pagar', 'todos', this)">Todos</div>
-          <div class="filter-chip" data-filter-group="pagar" data-filter="aguardando_aprovacao" onclick="filterTable('pagar', 'aguardando_aprovacao', this)">Aguardando aprovação</div>
-          <div class="filter-chip" data-filter-group="pagar" data-filter="atrasado" onclick="filterTable('pagar', 'atrasado', this)">Atrasados</div>
-          <div class="filter-chip" data-filter-group="pagar" data-filter="aberto" onclick="filterTable('pagar', 'aberto', this)">Em aberto</div>
-          <div class="filter-chip" data-filter-group="pagar" data-filter="pago" onclick="filterTable('pagar', 'pago', this)">Pagos</div>
+          <div class="filter-chip active" role="button" tabindex="0" data-filter-group="pagar" data-filter="todos" onclick="filterTable('pagar', 'todos', this)">Todos</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="pagar" data-filter="aguardando_aprovacao" onclick="filterTable('pagar', 'aguardando_aprovacao', this)">Aguardando aprovação</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="pagar" data-filter="atrasado" onclick="filterTable('pagar', 'atrasado', this)">Atrasados</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="pagar" data-filter="aberto" onclick="filterTable('pagar', 'aberto', this)">Em aberto</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="pagar" data-filter="pago" onclick="filterTable('pagar', 'pago', this)">Pagos</div>
           <input type="text" class="search-input" placeholder="Buscar fornecedor..." oninput="searchTable('pagar-table', this.value)">
         </div>
 
@@ -1948,10 +2188,10 @@
         </div>
 
         <div class="filters">
-          <div class="filter-chip active" data-filter-group="receber" data-filter="todos" onclick="filterTable('receber', 'todos', this)">Todos</div>
-          <div class="filter-chip" data-filter-group="receber" data-filter="aberto" onclick="filterTable('receber', 'aberto', this)">A vencer</div>
-          <div class="filter-chip" data-filter-group="receber" data-filter="inadimplente" onclick="filterTable('receber', 'inadimplente', this)">Inadimplentes</div>
-          <div class="filter-chip" data-filter-group="receber" data-filter="recebido" onclick="filterTable('receber', 'recebido', this)">Recebidos</div>
+          <div class="filter-chip active" role="button" tabindex="0" data-filter-group="receber" data-filter="todos" onclick="filterTable('receber', 'todos', this)">Todos</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="receber" data-filter="aberto" onclick="filterTable('receber', 'aberto', this)">A vencer</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="receber" data-filter="inadimplente" onclick="filterTable('receber', 'inadimplente', this)">Inadimplentes</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="receber" data-filter="recebido" onclick="filterTable('receber', 'recebido', this)">Recebidos</div>
           <input type="text" class="search-input" placeholder="Buscar cliente..." oninput="searchTable('receber-table', this.value)">
         </div>
 
@@ -2027,9 +2267,9 @@
         </div>
 
         <div class="filters">
-          <div class="filter-chip active" data-filter-group="parceiros" data-filter="todos" onclick="filtrarParceiros('todos', this)">Todos</div>
-          <div class="filter-chip" data-filter-group="parceiros" data-filter="fornecedor" onclick="filtrarParceiros('fornecedor', this)">Fornecedores</div>
-          <div class="filter-chip" data-filter-group="parceiros" data-filter="cliente" onclick="filtrarParceiros('cliente', this)">Clientes</div>
+          <div class="filter-chip active" role="button" tabindex="0" data-filter-group="parceiros" data-filter="todos" onclick="filtrarParceiros('todos', this)">Todos</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="parceiros" data-filter="fornecedor" onclick="filtrarParceiros('fornecedor', this)">Fornecedores</div>
+          <div class="filter-chip" role="button" tabindex="0" data-filter-group="parceiros" data-filter="cliente" onclick="filtrarParceiros('cliente', this)">Clientes</div>
           <input type="text" class="search-input" placeholder="Buscar por nome..." oninput="buscarParceiros(this.value)">
         </div>
 
@@ -2145,7 +2385,7 @@
         </div>
 
         <div class="filters" id="documentos-filtros">
-          <div class="filter-chip active" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>
+          <div class="filter-chip active" role="button" tabindex="0" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>
         </div>
 
         <div class="card" style="padding:0;overflow:hidden">
@@ -2404,7 +2644,7 @@
             <div class="card-header"><h3>Receitas por categoria</h3></div>
             <div class="table-wrapper">
               <table id="dre-receitas-table">
-                <thead><tr><th>Categoria</th><th>Valor</th><th>%</th></tr></thead>
+                <thead><tr><th>Categoria</th><th class="col-num">Valor</th><th class="col-num">% do total</th></tr></thead>
                 <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Clique em "Gerar"</td></tr></tbody>
               </table>
             </div>
@@ -2413,7 +2653,7 @@
             <div class="card-header"><h3>Despesas por categoria</h3></div>
             <div class="table-wrapper">
               <table id="dre-despesas-table">
-                <thead><tr><th>Categoria</th><th>Valor</th><th>%</th></tr></thead>
+                <thead><tr><th>Categoria</th><th class="col-num">Valor</th><th class="col-num">% do total</th></tr></thead>
                 <tbody><tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Clique em "Gerar"</td></tr></tbody>
               </table>
             </div>
@@ -3032,7 +3272,7 @@
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3066,27 +3306,62 @@ let currentUser = null;
 // ============================================
 // AUTH
 // ============================================
+function mostrarAjudaSenha() {
+  confirmar({
+    titulo: 'Esqueci minha senha',
+    mensagem: 'Por segurança, a redefinição de senha é feita pela equipe da Lucralize. Entre em contato com o suporte para receber uma nova senha de acesso.',
+    textoBotao: 'Entendi',
+    destrutivo: false,
+    onConfirmar: () => {}
+  });
+}
+
+function mostrarErroLogin(mensagem) {
+  const box = document.getElementById('login-erro');
+  box.innerHTML = `<svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-alert"/></svg><span>${esc(mensagem)}</span>`;
+  box.hidden = false;
+}
+
+function limparErroLogin() {
+  document.getElementById('login-erro').hidden = true;
+  document.getElementById('login-email-group').classList.remove('has-error');
+}
+
 async function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value;
+  limparErroLogin();
+
+  const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
-  const btn = e.target.querySelector('.login-btn');
+  const btn = document.getElementById('login-btn');
+
+  // Validação inline antes de bater no servidor
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    document.getElementById('login-email-group').classList.add('has-error');
+    document.getElementById('login-email').focus();
+    return;
+  }
+
   const btnTextoOriginal = btn.textContent;
+  btn.classList.add('is-loading');
   btn.textContent = 'Entrando...';
-  btn.disabled = true;
 
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
   if (error) {
-    showToast('Erro ao entrar: ' + error.message, 'error');
+    // Mensagem específica em vez de repassar o erro cru da API
+    const msg = /invalid login credentials/i.test(error.message)
+      ? 'E-mail ou senha incorretos. Verifique os dados e tente novamente.'
+      : 'Não foi possível entrar: ' + error.message;
+    mostrarErroLogin(msg);
+    btn.classList.remove('is-loading');
     btn.textContent = btnTextoOriginal;
-    btn.disabled = false;
     return;
   }
 
   await carregarPerfilEEntrar(data.user.id);
+  btn.classList.remove('is-loading');
   btn.textContent = btnTextoOriginal;
-  btn.disabled = false;
 }
 
 // Busca o perfil (role, nome, empresa) na tabela `perfis` e monta a sessão
@@ -3155,6 +3430,7 @@ async function renderizarAppLogado() {
   }
 
   applyRolePermissions(user.role);
+  restaurarEstadoGruposNav();
   buildCharts();
   navigate('dashboard');
   showToast(`Bem-vindo(a), ${user.name}!`, 'info');
@@ -3236,12 +3512,83 @@ function mesAnoAtualExtenso() {
   return `Visão consolidada — ${MESES_PT[agora.getMonth()]}/${agora.getFullYear()}`;
 }
 
+// Elementos com role="button" respondem a Enter e Espaço, como um <button>
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const alvo = e.target.closest('[role="button"]');
+  if (!alvo || alvo.tagName === 'BUTTON') return;
+  e.preventDefault();
+  alvo.click();
+});
+
 document.querySelectorAll('.nav-item').forEach(item => {
   item.addEventListener('click', () => navigate(item.dataset.screen));
 });
 
+// Monta o breadcrumb a partir do grupo de nav que contém a tela ativa
+function atualizarBreadcrumb(key) {
+  const el = document.getElementById('breadcrumb');
+  if (!el) return;
+
+  const navItem = document.querySelector(`.nav-item[data-screen="${key}"]`);
+  const grupo = navItem?.closest('.nav-group');
+
+  if (!grupo) {
+    el.hidden = true;
+    return;
+  }
+
+  const nomeGrupo = grupo.querySelector('.nav-group-header')?.textContent.trim() || '';
+  const nomeTela = screenTitles[key]?.[0] || '';
+  el.innerHTML = `${esc(nomeGrupo)}
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+    ${esc(nomeTela)}`;
+  el.hidden = false;
+}
+
+// Estado dos grupos persiste entre sessões (chave própria, não sobrescreve outras)
+const NAV_GROUPS_KEY = 'bpo_lucralize_nav_groups';
+
+// Drawer da sidebar em telas pequenas
+function toggleDrawer() {
+  const sidebar = document.querySelector('.sidebar');
+  const backdrop = document.getElementById('drawer-backdrop');
+  const aberto = sidebar.classList.toggle('drawer-open');
+  backdrop?.classList.toggle('show', aberto);
+  document.body.style.overflow = aberto ? 'hidden' : '';
+}
+
+function fecharDrawer() {
+  document.querySelector('.sidebar')?.classList.remove('drawer-open');
+  document.getElementById('drawer-backdrop')?.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
 function toggleNavGroup(groupId) {
-  document.getElementById(groupId).classList.toggle('open');
+  const grupo = document.getElementById(groupId);
+  const aberto = grupo.classList.toggle('open');
+  grupo.querySelector('.nav-group-header')?.setAttribute('aria-expanded', String(aberto));
+  salvarEstadoGruposNav();
+}
+
+function salvarEstadoGruposNav() {
+  try {
+    const abertos = Array.from(document.querySelectorAll('.nav-group.open')).map(g => g.id);
+    localStorage.setItem(NAV_GROUPS_KEY, JSON.stringify(abertos));
+  } catch (e) { /* localStorage indisponível — ignora silenciosamente */ }
+}
+
+function restaurarEstadoGruposNav() {
+  try {
+    const salvos = JSON.parse(localStorage.getItem(NAV_GROUPS_KEY) || '[]');
+    salvos.forEach(id => {
+      const g = document.getElementById(id);
+      if (g) {
+        g.classList.add('open');
+        g.querySelector('.nav-group-header')?.setAttribute('aria-expanded', 'true');
+      }
+    });
+  } catch (e) { /* ignora */ }
 }
 
 function navigate(key) {
@@ -3261,9 +3608,17 @@ function navigate(key) {
 
   if (screenTitles[key]) {
     document.getElementById('screen-title').textContent = screenTitles[key][0];
-    document.getElementById('screen-subtitle').textContent =
-      key === 'dashboard' ? mesAnoAtualExtenso() : screenTitles[key][1];
+
+    const subtitulo = key === 'dashboard' ? mesAnoAtualExtenso() : screenTitles[key][1];
+    const elSub = document.getElementById('screen-subtitle');
+    elSub.textContent = subtitulo;
+    // Esconde o elemento quando vazio, em vez de deixar espaço reservado
+    elSub.hidden = !subtitulo;
+
+    atualizarBreadcrumb(key);
   }
+
+  fecharDrawer(); // em tela pequena, fecha o menu ao escolher a tela
 
   if (key === 'dashboard') carregarDashboard();
   if (key === 'carteira') carregarCarteira();
@@ -3488,6 +3843,38 @@ async function carregarContasReceber() {
   atualizarBadgeMenu('badge-receber', precisaAcao.length);
 }
 
+// Renderiza o delta de um KPI com seta, valor e referência textual.
+// menorEhMelhor inverte a semântica de cor (ex: inadimplência caindo é bom).
+function renderDelta(elId, atual, anterior, formato = 'moeda', menorEhMelhor = false) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+
+  if (anterior === null || anterior === undefined) {
+    el.innerHTML = '<span style="color:var(--text-subtle)">sem base de comparação</span>';
+    return;
+  }
+
+  const diff = atual - anterior;
+  if (Math.abs(diff) < 0.01) {
+    el.innerHTML = '<span style="color:var(--text-subtle)">estável vs. mês anterior</span>';
+    return;
+  }
+
+  const subiu = diff > 0;
+  const bom = menorEhMelhor ? !subiu : subiu;
+  const cor = bom ? 'var(--green)' : 'var(--red)';
+  const seta = subiu
+    ? '<svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-up-circle"/></svg>'
+    : '<svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-down-circle"/></svg>';
+
+  const valor = formato === 'pp'
+    ? Math.abs(diff).toFixed(1).replace('.', ',') + ' p.p.'
+    : formatarMoeda(Math.abs(diff));
+
+  el.innerHTML = `<span style="color:${cor};display:inline-flex;align-items:center;gap:4px">${seta}${valor}</span>
+                  <span style="color:var(--text-subtle)">vs. mês anterior</span>`;
+}
+
 async function carregarDashboard() {
   const empresaId = empresaAtualId();
   if (!empresaId) return;
@@ -3531,10 +3918,44 @@ async function carregarDashboard() {
   document.getElementById('kpi-receber30').textContent = formatarMoeda(totalReceber30);
   document.getElementById('kpi-inadimplencia').textContent = pctInadimplencia.toFixed(1).replace('.', ',') + '%';
 
-  // Deltas ocultos por enquanto (exigem histórico mensal que ainda não coletamos)
-  ['kpi-saldo-delta', 'kpi-pagar30-delta', 'kpi-receber30-delta', 'kpi-inadimplencia-delta'].forEach(id => {
-    document.getElementById(id).textContent = '';
-  });
+  // ===== Deltas com referência explícita =====
+  // Onde a comparação mês a mês faz sentido (saldo realizado e
+  // inadimplência), calculamos de verdade. Nas janelas de 30 dias
+  // para frente não existe "mês anterior" comparável, então mostramos
+  // a contagem de lançamentos como contexto, em vez de um delta falso.
+  const mesAtual = hoje.getMonth(), anoAtual = hoje.getFullYear();
+  const refAnterior = new Date(anoAtual, mesAtual - 1, 1);
+
+  const noMes = (dataStr, mes, ano) => {
+    if (!dataStr) return false;
+    const d = new Date(dataStr + 'T00:00:00');
+    return d.getMonth() === mes && d.getFullYear() === ano;
+  };
+
+  const saldoDoMes = (mes, ano) => {
+    const rec = lancs.filter(l => l.tipo === 'receber' && l.status === 'recebido' && noMes(l.data_pagamento, mes, ano))
+                     .reduce((s, l) => s + Number(l.valor), 0);
+    const pag = lancs.filter(l => l.tipo === 'pagar' && l.status === 'pago' && noMes(l.data_pagamento, mes, ano))
+                     .reduce((s, l) => s + Number(l.valor), 0);
+    return rec - pag;
+  };
+
+  const saldoMesAnterior = saldoDoMes(refAnterior.getMonth(), refAnterior.getFullYear());
+  const saldoMesAtual = saldoDoMes(mesAtual, anoAtual);
+
+  renderDelta('kpi-saldo-delta', saldoMesAtual, saldoMesAnterior, 'moeda');
+  document.getElementById('kpi-pagar30-delta').innerHTML =
+    `<span style="color:var(--text-subtle)">${pagarAberto.length} lançamento(s) no período</span>`;
+  document.getElementById('kpi-receber30-delta').innerHTML =
+    `<span style="color:var(--text-subtle)">${receberAberto.length} lançamento(s) no período</span>`;
+
+  const inadAnterior = (() => {
+    const validos = lancs.filter(l => l.tipo === 'receber' && l.status !== 'cancelado' && noMes(l.vencimento, refAnterior.getMonth(), refAnterior.getFullYear()));
+    const total = validos.reduce((s, l) => s + Number(l.valor), 0);
+    const inad = validos.filter(l => l.status === 'inadimplente').reduce((s, l) => s + Number(l.valor), 0);
+    return total > 0 ? (inad / total * 100) : null;
+  })();
+  renderDelta('kpi-inadimplencia-delta', pctInadimplencia, inadAnterior, 'pp', true);
 
   // Aging de inadimplência: agrupa lançamentos 'inadimplente' por faixa de dias vencidos
   const inadimplentes = lancs.filter(l => l.tipo === 'receber' && l.status === 'inadimplente');
@@ -3728,12 +4149,32 @@ async function carregarDRE() {
   const receitasPorCategoria = agruparPorCategoria(receitas, totalReceitas);
   const despesasPorCategoria = agruparPorCategoria(despesas, totalDespesas);
 
-  const renderTabela = (grupos) => grupos.length
-    ? grupos.map(g => `<tr><td>${esc(g.nome)}</td><td>${formatarMoeda(g.valor)}</td><td>${g.pct.toFixed(1)}%</td></tr>`).join('')
-    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-subtle)">Nenhum lançamento no período</td></tr>';
+  // Valores negativos entre parênteses em vermelho (convenção contábil)
+  const fmtDre = (v) => v < 0
+    ? `<span style="color:var(--red)">(${formatarMoeda(Math.abs(v))})</span>`
+    : formatarMoeda(v);
 
-  document.querySelector('#dre-receitas-table tbody').innerHTML = renderTabela(receitasPorCategoria);
-  document.querySelector('#dre-despesas-table tbody').innerHTML = renderTabela(despesasPorCategoria);
+  const renderTabela = (grupos, total, rotuloTotal) => {
+    if (!grupos.length) {
+      return tabelaVazia(3, 'Nenhum lançamento no período', 'Ajuste o período ou cadastre lançamentos para ver o resultado.');
+    }
+    const linhas = grupos.map(g => `
+      <tr>
+        <td style="padding-left:var(--s5)">${esc(g.nome)}</td>
+        <td class="col-num"><span class="amount">${fmtDre(g.valor)}</span></td>
+        <td class="col-num">${g.pct.toFixed(1).replace('.', ',')}%</td>
+      </tr>`).join('');
+    const linhaTotal = `
+      <tr class="dre-total">
+        <td>${rotuloTotal}</td>
+        <td class="col-num"><span class="amount">${fmtDre(total)}</span></td>
+        <td class="col-num">100,0%</td>
+      </tr>`;
+    return linhas + linhaTotal;
+  };
+
+  document.querySelector('#dre-receitas-table tbody').innerHTML = renderTabela(receitasPorCategoria, totalReceitas, 'Total de receitas');
+  document.querySelector('#dre-despesas-table tbody').innerHTML = renderTabela(despesasPorCategoria, totalDespesas, 'Total de despesas');
 
   dreDadosAtuais = { label, totalReceitas, totalDespesas, resultado, receitasPorCategoria, despesasPorCategoria };
 }
@@ -5109,10 +5550,13 @@ async function excluirAnexoConfirmado(anexoId, storagePath, lancamentoId) {
 }
 // CHARTS
 // ============================================
+// Antes de os dados reais chegarem, mostra skeleton — nunca dados
+// inventados (a versão anterior gerava barras com Math.sin())
 function buildCharts() {
-  // Mantido como fallback visual antes dos dados reais chegarem
-  buildFlowChart('flow-chart-dash', 14, 120);
-  buildFlowChart('flow-chart-big', 30, 160);
+  ['flow-chart-dash', 'flow-chart-big'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<span class="sk" style="width:100%;height:100%;display:block;border-radius:var(--r-sm)"></span>';
+  });
 }
 
 // Constrói o gráfico de barras com dados reais de lançamentos
@@ -5121,83 +5565,151 @@ function buildFlowChartReal(containerId, days, height, lancs) {
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  container.style.height = (height || 140) + 'px';
+  const H = height || 160;
+  container.style.height = (H + 26) + 'px';
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
+  // Monta a série do período
   const data = Array.from({ length: days }, (_, i) => {
-    const dia = new Date(hoje.getTime() + i * 24 * 60 * 60 * 1000);
+    const dia = new Date(hoje.getTime() + i * 86400000);
     const diaStr = dia.toISOString().slice(0, 10);
-
     const entrada = lancs
-      .filter(l => l.tipo === 'receber' && !['recebido', 'cancelado'].includes(l.status) && l.vencimento === diaStr)
+      .filter(l => l.tipo === 'receber' && !['recebido','cancelado'].includes(l.status) && l.vencimento === diaStr)
       .reduce((s, l) => s + Number(l.valor), 0);
-
     const saida = lancs
-      .filter(l => l.tipo === 'pagar' && !['pago', 'cancelado'].includes(l.status) && l.vencimento === diaStr)
+      .filter(l => l.tipo === 'pagar' && !['pago','cancelado'].includes(l.status) && l.vencimento === diaStr)
       .reduce((s, l) => s + Number(l.valor), 0);
-
-    return { entrada, saida, dataFormatada: `${String(dia.getDate()).padStart(2, '0')}/${String(dia.getMonth() + 1).padStart(2, '0')}` };
+    return {
+      entrada, saida,
+      dia: dia.getDate(),
+      dataFormatada: `${String(dia.getDate()).padStart(2,'0')}/${String(dia.getMonth()+1).padStart(2,'0')}`,
+      ehHoje: i === 0
+    };
   });
 
-  const maxVal = Math.max(1, ...data.flatMap(d => [d.entrada, d.saida]));
+  // Escala do eixo Y arredondada para cima
+  const maxBruto = Math.max(1, ...data.flatMap(d => [d.entrada, d.saida]));
+  const magnitude = Math.pow(10, Math.floor(Math.log10(maxBruto)));
+  const maxVal = Math.ceil(maxBruto / magnitude) * magnitude;
 
-  container.innerHTML = data.map((d, i) => {
-    const entH = Math.round((d.entrada / maxVal) * (height - 30));
-    const saiH = Math.round((d.saida / maxVal) * (height - 30));
-    const label = days <= 14
-      ? (i + 1)
-      : (i % 5 === 0 ? (i + 1) : '');
+  // Geometria do SVG (viewBox fixo, escala responsiva via CSS)
+  const W = 1000;
+  const padLeft = 54, padRight = 8, padTop = 8, padBottom = 22;
+  const plotW = W - padLeft - padRight;
+  const plotH = H - padTop - padBottom;
 
-    return `
-      <div class="chart-col">
-        <div class="chart-bars">
-          <div class="chart-bar entrada" style="height:${entH}px" title="Entrada em ${d.dataFormatada}: ${formatarMoeda(d.entrada)}"></div>
-          <div class="chart-bar saida" style="height:${saiH}px" title="Saída em ${d.dataFormatada}: ${formatarMoeda(d.saida)}"></div>
-        </div>
-        <div class="chart-label">${label}</div>
-      </div>
-    `;
-  }).join('');
+  const passo = plotW / days;
+  const larguraBarra = Math.max(2, Math.min(14, passo * 0.32));
+  const gap = 2;
+
+  const y = v => padTop + plotH - (v / maxVal) * plotH;
+
+  // Abrevia valores do eixo: 12k, 240k, 1.2M
+  const abrev = v => {
+    if (v >= 1e6) return (v / 1e6).toFixed(v % 1e6 === 0 ? 0 : 1).replace('.', ',') + 'M';
+    if (v >= 1e3) return (v / 1e3).toFixed(v % 1e3 === 0 ? 0 : 1).replace('.', ',') + 'k';
+    return String(v);
+  };
+
+  // Linhas de grade + rótulos do eixo Y (4 níveis)
+  let grade = '';
+  for (let i = 0; i <= 3; i++) {
+    const valor = (maxVal / 3) * i;
+    const yy = y(valor);
+    grade += `<line x1="${padLeft}" y1="${yy}" x2="${W - padRight}" y2="${yy}" class="cg-grid"/>`;
+    grade += `<text x="${padLeft - 8}" y="${yy + 4}" class="cg-axis" text-anchor="end">${abrev(valor)}</text>`;
+  }
+
+  // Saldo acumulado do período (linha sobreposta)
+  let acumulado = 0;
+  const pontosSaldo = data.map((d, i) => {
+    acumulado += d.entrada - d.saida;
+    const x = padLeft + passo * i + passo / 2;
+    // normaliza o saldo na mesma escala, com piso em 0
+    const yy = y(Math.max(0, Math.min(maxVal, acumulado)));
+    return { x, y: yy, valor: acumulado };
+  });
+  const pathSaldo = pontosSaldo.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+  // Barras + área de hover (invisível, cobre a coluna inteira)
+  let barras = '', hovers = '', marcadorHoje = '';
+  data.forEach((d, i) => {
+    const xBase = padLeft + passo * i + passo / 2;
+    const xEnt = xBase - larguraBarra - gap / 2;
+    const xSai = xBase + gap / 2;
+
+    const hEnt = d.entrada > 0 ? Math.max(2, plotH - (y(d.entrada) - padTop)) : 0;
+    const hSai = d.saida > 0 ? Math.max(2, plotH - (y(d.saida) - padTop)) : 0;
+
+    if (hEnt) barras += `<rect class="cg-bar cg-in" x="${xEnt.toFixed(1)}" y="${(padTop + plotH - hEnt).toFixed(1)}" width="${larguraBarra.toFixed(1)}" height="${hEnt.toFixed(1)}" rx="2" style="--d:${i * 15}ms"/>`;
+    if (hSai) barras += `<rect class="cg-bar cg-out" x="${xSai.toFixed(1)}" y="${(padTop + plotH - hSai).toFixed(1)}" width="${larguraBarra.toFixed(1)}" height="${hSai.toFixed(1)}" rx="2" style="--d:${i * 15}ms"/>`;
+
+    if (d.ehHoje) {
+      marcadorHoje = `<line x1="${xBase.toFixed(1)}" y1="${padTop}" x2="${xBase.toFixed(1)}" y2="${padTop + plotH}" class="cg-today"/>`;
+    }
+
+    // Rótulo do eixo X
+    const mostrarLabel = days <= 14 || i % Math.ceil(days / 8) === 0;
+    if (mostrarLabel) {
+      barras += `<text x="${xBase.toFixed(1)}" y="${H - 6}" class="cg-axis" text-anchor="middle">${d.dia}</text>`;
+    }
+
+    // Alvo de hover para o tooltip
+    hovers += `<rect class="cg-hit" x="${(padLeft + passo * i).toFixed(1)}" y="${padTop}" width="${passo.toFixed(1)}" height="${plotH}"
+      data-data="${d.dataFormatada}" data-ent="${d.entrada}" data-sai="${d.saida}" data-saldo="${pontosSaldo[i].valor}"/>`;
+  });
+
+  container.innerHTML = `
+    <div class="cg-wrap">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="cg-svg" role="img"
+           aria-label="Gráfico de entradas e saídas previstas dos próximos ${days} dias">
+        ${grade}
+        ${marcadorHoje}
+        ${barras}
+        <path d="${pathSaldo}" class="cg-line"/>
+        ${hovers}
+      </svg>
+      <div class="cg-tooltip" hidden></div>
+    </div>
+  `;
+
+  ativarTooltipGrafico(container);
 }
+
+// Tooltip do gráfico: lê os data-* do alvo de hover e posiciona
+function ativarTooltipGrafico(container) {
+  const tooltip = container.querySelector('.cg-tooltip');
+  const wrap = container.querySelector('.cg-wrap');
+  if (!tooltip || !wrap) return;
+
+  container.querySelectorAll('.cg-hit').forEach(hit => {
+    hit.addEventListener('mouseenter', () => {
+      const ent = Number(hit.dataset.ent), sai = Number(hit.dataset.sai), saldo = Number(hit.dataset.saldo);
+      tooltip.innerHTML = `
+        <div class="cg-tt-data">${esc(hit.dataset.data)}</div>
+        <div class="cg-tt-linha"><span class="cg-dot cg-dot-in"></span>Entradas<strong>${formatarMoeda(ent)}</strong></div>
+        <div class="cg-tt-linha"><span class="cg-dot cg-dot-out"></span>Saídas<strong>${formatarMoeda(sai)}</strong></div>
+        <div class="cg-tt-linha cg-tt-total">Saldo acumulado<strong>${formatarMoeda(saldo)}</strong></div>
+      `;
+      tooltip.hidden = false;
+    });
+
+    hit.addEventListener('mousemove', (e) => {
+      const r = wrap.getBoundingClientRect();
+      let x = e.clientX - r.left + 12;
+      if (x + 190 > r.width) x = e.clientX - r.left - 202;
+      tooltip.style.left = Math.max(0, x) + 'px';
+      tooltip.style.top = Math.max(0, e.clientY - r.top - 10) + 'px';
+    });
+
+    hit.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+  });
+}
+
 
 const MONTHS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
-
-function buildFlowChart(containerId, days, height) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  container.style.height = (height || 140) + 'px';
-
-  // Gera dados com padrão realista
-  const seed = days * 17;
-  const data = Array.from({length: days}, (_, i) => {
-    const entrada = 20 + Math.abs(Math.sin((i + seed) * 0.7)) * 80;
-    const saida   = 15 + Math.abs(Math.sin((i + seed) * 1.1)) * 65;
-    return { entrada, saida };
-  });
-
-  const maxVal = Math.max(...data.flatMap(d => [d.entrada, d.saida]));
-
-  container.innerHTML = data.map((d, i) => {
-    const entH = Math.round((d.entrada / maxVal) * (height - 30));
-    const saiH = Math.round((d.saida / maxVal) * (height - 30));
-    const label = days <= 14
-      ? (i + 1)
-      : (i % 5 === 0 ? (i + 1) : '');
-
-    return `
-      <div class="chart-col">
-        <div class="chart-bars">
-          <div class="chart-bar entrada" style="height:${entH}px" title="Entrada: R$ ${Math.round(d.entrada * 850).toLocaleString('pt-BR')}"></div>
-          <div class="chart-bar saida" style="height:${saiH}px" title="Saída: R$ ${Math.round(d.saida * 750).toLocaleString('pt-BR')}"></div>
-        </div>
-        <div class="chart-label">${label}</div>
-      </div>
-    `;
-  }).join('');
-}
 
 // ============================================
 // TABLE FILTERS
@@ -5916,10 +6428,10 @@ async function buscarCategoriasDocumento() {
 function renderizarFiltrosDocumentos() {
   const container = document.getElementById('documentos-filtros');
   const chipsCategorias = categoriasDocumentoCarregadas.map(c =>
-    `<div class="filter-chip" data-filter-group="documentos" data-filter="${c.nome}" onclick="filtrarDocumentos('${esc(c.nome)}', this)">${c.nome}</div>`
+    `<div class="filter-chip" role="button" tabindex="0" data-filter-group="documentos" data-filter="${c.nome}" onclick="filtrarDocumentos('${esc(c.nome)}', this)">${c.nome}</div>`
   ).join('');
 
-  container.innerHTML = `<div class="filter-chip active" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>${chipsCategorias}`;
+  container.innerHTML = `<div class="filter-chip active" role="button" tabindex="0" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>${chipsCategorias}`;
 }
 
 async function carregarDocumentosGerais() {
@@ -6433,15 +6945,54 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // ============================================
 // TOAST
 // ============================================
-let toastTimeout;
+// Fila de toasts: empilha até 3, cada um com barra de progresso e
+// botão de fechar. Antes havia um único elemento reaproveitado, então
+// mensagens em sequência se sobrescreviam.
+const TOAST_MAX = 3;
+const TOAST_DURACAO = 4000;
+
 function showToast(msg, type = 'success') {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    toast.classList.remove('show');
-  }, 3500);
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  // Remove os mais antigos se passar do limite
+  while (container.children.length >= TOAST_MAX) {
+    container.firstElementChild.remove();
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  toast.innerHTML = `
+    <div class="toast-msg">${esc(msg)}</div>
+    <button class="toast-close" aria-label="Fechar notificação">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>
+    </button>
+    <div class="toast-progress"></div>
+  `;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  const fechar = () => {
+    toast.classList.add('hiding');
+    setTimeout(() => toast.remove(), 200);
+  };
+
+  toast.querySelector('.toast-close').addEventListener('click', fechar);
+  const timer = setTimeout(fechar, TOAST_DURACAO);
+
+  // Pausa o auto-dismiss enquanto o mouse está sobre o toast
+  toast.addEventListener('mouseenter', () => {
+    clearTimeout(timer);
+    const barra = toast.querySelector('.toast-progress');
+    if (barra) barra.style.animationPlayState = 'paused';
+  });
+  toast.addEventListener('mouseleave', () => {
+    const barra = toast.querySelector('.toast-progress');
+    if (barra) barra.style.animationPlayState = 'running';
+    setTimeout(fechar, 1500);
+  });
 }
 
 // ============================================
@@ -6542,8 +7093,9 @@ async function carregarNotificacoes() {
 
 function toggleNotificacoesPanel() {
   const painel = document.getElementById('notificacoes-panel');
-  painel.classList.toggle('open');
-  if (painel.classList.contains('open')) carregarNotificacoes();
+  const aberto = painel.classList.toggle('open');
+  document.querySelector('.notification-btn')?.setAttribute('aria-expanded', String(aberto));
+  if (aberto) carregarNotificacoes();
 }
 
 // Fecha o painel se clicar fora dele
