@@ -1657,11 +1657,11 @@
             </select>
             <button class="btn ghost can-approve" onclick="abrirFormNovaContaBancaria()">+ Nova conta</button>
             <button class="btn ghost" onclick="carregarConciliacao()">🔄 Atualizar</button>
-            <button class="btn can-approve" onclick="adicionarItemExtrato()">+ Lançar item</button>
+            <button class="btn can-approve" onclick="abrirModalLancarExtrato()">+ Lançar item</button>
           </div>
         </div>
 
-        <div class="card can-approve" id="form-nova-conta-bancaria" style="display:none">
+        <div class="card" id="form-nova-conta-bancaria" style="display:none">
           <div class="card-header"><h3>Cadastrar conta bancária</h3></div>
           <div class="form-row">
             <div class="form-group">
@@ -2054,6 +2054,46 @@
     </div>
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeModal('modal-detalhe')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== MODAL: LANÇAR ITEM DO EXTRATO ====================== -->
+<div class="modal-overlay" id="modal-lancar-extrato">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3>Lançar item do extrato</h3>
+        <p>Registre um movimento bancário para conciliação</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-lancar-extrato')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Descrição</label>
+        <input type="text" id="extrato-form-descricao" placeholder="Ex: TED recebida — Grupo Nova Era">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="extrato-form-tipo">
+            <option value="entrada">Entrada (+)</option>
+            <option value="saida">Saída (−)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Valor (R$)</label>
+          <input type="number" id="extrato-form-valor" placeholder="0,00" step="0.01" min="0.01">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Data do movimento</label>
+        <input type="date" id="extrato-form-data">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-lancar-extrato')">Cancelar</button>
+      <button class="btn" onclick="salvarItemExtrato()">Lançar item</button>
     </div>
   </div>
 </div>
@@ -2895,27 +2935,40 @@ async function conciliarItemReal(itemId) {
 
 // Cadastro manual de item do extrato (versão simples via prompt,
 // enquanto não temos um formulário dedicado)
-async function adicionarItemExtrato() {
+function abrirModalLancarExtrato() {
   if (!contaBancariaAtualId) {
     showToast('Cadastre uma conta bancária antes de lançar itens do extrato.', 'error');
     return;
   }
 
-  const descricao = prompt('Descrição do lançamento no extrato:');
-  if (!descricao) return;
+  document.getElementById('extrato-form-descricao').value = '';
+  document.getElementById('extrato-form-tipo').value = 'entrada';
+  document.getElementById('extrato-form-valor').value = '';
+  document.getElementById('extrato-form-data').value = new Date().toISOString().slice(0, 10);
 
-  const valorStr = prompt('Valor (use negativo para saída, ex: -150.50 ou 300):');
-  if (!valorStr) return;
-  const valor = parseFloat(valorStr.replace(',', '.'));
-  if (isNaN(valor)) {
-    showToast('Valor inválido', 'error');
+  openModal('modal-lancar-extrato');
+}
+
+async function salvarItemExtrato() {
+  const descricao = document.getElementById('extrato-form-descricao').value.trim();
+  const tipo = document.getElementById('extrato-form-tipo').value;
+  const valorStr = document.getElementById('extrato-form-valor').value;
+  const dataStr = document.getElementById('extrato-form-data').value;
+
+  if (!descricao || !valorStr || !dataStr) {
+    showToast('Preencha descrição, valor e data.', 'error');
     return;
   }
 
-  const dataStr = prompt('Data do movimento (AAAA-MM-DD):', new Date().toISOString().slice(0, 10));
-  if (!dataStr) return;
+  const valorAbsoluto = parseFloat(valorStr);
+  if (isNaN(valorAbsoluto) || valorAbsoluto <= 0) {
+    showToast('Valor inválido.', 'error');
+    return;
+  }
 
+  const valor = tipo === 'saida' ? -Math.abs(valorAbsoluto) : Math.abs(valorAbsoluto);
   const empresaId = empresaAtualId();
+
   const { error } = await sb.from('conciliacao_bancaria').insert({
     empresa_id: empresaId,
     conta_bancaria_id: contaBancariaAtualId,
@@ -2930,7 +2983,8 @@ async function adicionarItemExtrato() {
     return;
   }
 
-  showToast('Item lançado com sucesso!', 'info');
+  closeModal('modal-lancar-extrato');
+  showToast('Item lançado com sucesso!', 'success');
   carregarConciliacao();
 }
 
