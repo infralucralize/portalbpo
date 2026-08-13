@@ -232,19 +232,76 @@
   }
   .form-group input, .form-group select, .form-group textarea {
     width: 100%;
-    padding: 11px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
+    height: 42px;
+    padding: 0 var(--s3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
     font-family: 'Poppins', sans-serif;
-    font-size: 13px;
-    color: var(--text-main);
-    transition: border-color 0.15s;
-    background: #fff;
+    font-size: 14px;
+    color: var(--text);
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    background: var(--surface);
   }
+  .form-group textarea { height: auto; padding: var(--s3); min-height: 84px; }
+  .form-group input[type="file"] { height: auto; padding: var(--s2) var(--s3); font-size: 13px; }
+
+  .form-group input:hover:not(:disabled),
+  .form-group select:hover:not(:disabled) { border-color: var(--border-strong); }
+
+  /* Foco: cor + halo (antes o foco era fraco demais) */
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     outline: none;
     border-color: var(--teal);
+    box-shadow: var(--focus);
   }
+
+  /* Estado desabilitado */
+  .form-group input:disabled, .form-group select:disabled, .form-group textarea:disabled {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    border-color: var(--border);
+  }
+
+  /* Estado de erro: borda + mensagem (nunca só toast) */
+  .form-group.has-error input,
+  .form-group.has-error select,
+  .form-group.has-error textarea {
+    border-color: var(--red);
+  }
+  .form-group.has-error input:focus,
+  .form-group.has-error select:focus {
+    box-shadow: 0 0 0 3px rgba(247,38,66,.22);
+  }
+  .field-error {
+    display: none;
+    font-size: 12px;
+    color: var(--red);
+    margin-top: var(--s1);
+    font-weight: 500;
+  }
+  .form-group.has-error .field-error { display: block; }
+
+  .field-hint {
+    font-size: 12px;
+    color: var(--text-subtle);
+    margin-top: var(--s1);
+  }
+
+  /* Campo monetário com prefixo R$ dentro do input */
+  .input-prefix { position: relative; }
+  .input-prefix::before {
+    content: 'R$';
+    position: absolute;
+    left: var(--s3);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .input-prefix input { padding-left: 40px; }
 
   .login-btn {
     width: 100%;
@@ -1063,35 +1120,67 @@
 
   .toolbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
+  /* ============================
+     BOTÕES — primário sólido, secundário outline, ghost, destrutivo.
+     40px de altura padrão; 36px em toolbar.
+  ============================ */
   .btn {
     background: var(--teal);
     color: #fff;
-    border: none;
-    padding: 9px 18px;
-    border-radius: 8px;
+    border: 1px solid transparent;
+    height: 40px;
+    padding: 0 var(--s4);
+    border-radius: var(--r-sm);
     font-family: 'Poppins', sans-serif;
     font-weight: 600;
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
-    transition: background 0.15s;
-    display: flex;
+    transition: background var(--t-fast), border-color var(--t-fast), opacity var(--t-fast);
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: var(--s2);
     white-space: nowrap;
   }
 
-  .btn:hover { background: #0a6274; }
+  .btn:hover:not(:disabled) { background: #0a6274; }
+  .btn:active:not(:disabled) { background: #085462; }
+
+  .toolbar-actions .btn { height: 36px; padding: 0 var(--s3); }
 
   .btn.ghost {
-    background: transparent;
+    background: var(--surface);
     color: var(--teal);
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
+  }
+  .btn.ghost:hover:not(:disabled) {
+    background: var(--info-bg);
+    border-color: var(--teal);
   }
 
-  .btn.ghost:hover { background: #F0FAFE; border-color: var(--teal); }
-
   .btn.danger { background: var(--red); }
-  .btn.danger:hover { background: #d41e38; }
+  .btn.danger:hover:not(:disabled) { background: #d41e38; }
+
+  /* Desabilitado e carregando: impede duplo clique em salvamentos */
+  .btn:disabled, .btn.is-loading {
+    opacity: .6;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .btn.is-loading::before {
+    content: '';
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spin .6s linear infinite;
+    flex-shrink: 0;
+  }
+  .btn.ghost.is-loading::before {
+    border-color: rgba(12,116,136,.3);
+    border-top-color: var(--teal);
+  }
+  @keyframes btn-spin { to { transform: rotate(360deg); } }
 
   .filters {
     display: flex;
@@ -1219,39 +1308,52 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(14,20,40,0.5);
-    backdrop-filter: blur(3px);
+    background: rgba(14,20,40,.45);
+    backdrop-filter: blur(4px);
     z-index: 200;
     align-items: center;
     justify-content: center;
+    padding: var(--s4);
   }
 
   .modal-overlay.open { display: flex; }
 
-  .modal {
-    background: #fff;
-    border-radius: 14px;
-    width: 520px;
-    max-width: 95vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  /* Entrada suave: fade + translateY de 8px em 180ms */
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    width: 560px;
+    max-width: 100%;
+    max-height: 88vh;
+    box-shadow: var(--sh-3);
+    /* header e footer fixos, corpo com scroll próprio */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modal-in var(--t) cubic-bezier(.2,0,.4,1);
+  }
+
+  /* Formulários de duas colunas ganham mais largura */
+  .modal.modal-wide { width: 720px; }
 
   .modal-header {
-    padding: 22px 24px 18px;
+    padding: var(--s5) var(--s5) var(--s4);
     border-bottom: 1px solid var(--border);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 1;
+    gap: var(--s4);
+    background: var(--surface);
+    flex-shrink: 0;
   }
 
-  .modal-header h3 { font-size: 16px; font-weight: 700; }
-  .modal-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .modal-header h3 { font-size: 17px; font-weight: 600; line-height: 1.3; }
+  .modal-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
 
   .modal-close {
     width: 30px; height: 30px;
@@ -1267,16 +1369,18 @@
 
   .modal-close:hover { background: var(--border); }
 
-  .modal-body { padding: 24px; }
+  .modal-body { padding: var(--s5); overflow-y: auto; flex: 1; }
 
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
   .modal-footer {
-    padding: 16px 24px;
+    padding: var(--s4) var(--s5);
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--s2);
+    background: var(--surface);
+    flex-shrink: 0;
   }
 
   /* ============================
@@ -2906,6 +3010,27 @@
   </div>
 </div>
 
+<!-- ====================== MODAL: CONFIRMAÇÃO (substitui confirm() nativo) ====================== -->
+<div class="modal-overlay" id="modal-confirmacao" aria-labelledby="confirm-titulo">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <h3 id="confirm-titulo">Confirmar ação</h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-confirmacao')" aria-label="Fechar">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="confirm-mensagem" style="font-size:14px;line-height:1.6;color:var(--text-muted)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-confirmacao')">Cancelar</button>
+      <button class="btn danger" id="confirm-botao" onclick="executarConfirmacao()">Excluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -4239,18 +4364,23 @@ async function salvarNovaEmpresa() {
 // ============================================
 function confirmarExclusaoEmpresa(id) {
   const nome = ultimasEmpresasCarregadas.find(e => e.id === id)?.nome || 'esta empresa';
-  const confirmado = confirm(
-    `⚠️ ATENÇÃO: excluir "${nome}" é IRREVERSÍVEL.\n\n` +
-    `Isso vai apagar permanentemente TODOS os dados dessa empresa: ` +
-    `lançamentos, contas bancárias, conciliações, fornecedores/clientes, ` +
-    `categorias, recorrências, prazos fiscais, anexos e usuários vinculados.\n\n` +
-    `Um backup completo em PDF será gerado automaticamente antes da exclusão.\n\n` +
-    `Deseja continuar mesmo assim?`
-  );
-
-  if (confirmado) {
-    gerarBackupEExcluirEmpresa(id, nome);
-  }
+  confirmar({
+    titulo: 'Excluir empresa',
+    textoBotao: 'Excluir definitivamente',
+    mensagem: `
+      <p style="margin-bottom:12px">
+        Excluir <strong>${esc(nome)}</strong> é <strong style="color:var(--red)">irreversível</strong>.
+      </p>
+      <p style="margin-bottom:12px">
+        Isso apaga permanentemente todos os dados dessa empresa: lançamentos,
+        contas bancárias, conciliações, fornecedores/clientes, categorias,
+        recorrências, prazos fiscais, anexos e usuários vinculados.
+      </p>
+      <p style="padding:12px;background:var(--info-bg);border-radius:var(--r-sm);color:var(--teal);font-weight:500">
+        Um backup completo em PDF será baixado automaticamente antes da exclusão.
+      </p>`,
+    onConfirmar: () => gerarBackupEExcluirEmpresa(id, nome)
+  });
 }
 
 async function gerarBackupEExcluirEmpresa(id, nome) {
@@ -4656,15 +4786,18 @@ function exportarCarteira() {
   showToast('Exportado com sucesso!', 'success');
 }
 
-async function excluirUsuario(userId) {
+function excluirUsuario(userId) {
   const nome = ultimosUsuariosCarregados.find(u => u.id === userId)?.nome || 'este usuário';
-  if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
-
-  const resultado = await chamarAdminUserFunction({ action: 'delete', user_id: userId });
-  if (!resultado) return;
-
-  showToast('Usuário excluído com sucesso!', 'success');
-  carregarUsuarios();
+  confirmar({
+    titulo: 'Excluir usuário',
+    mensagem: `Excluir <strong>${esc(nome)}</strong>? Essa ação não pode ser desfeita e o acesso dele ao portal será removido.`,
+    onConfirmar: async () => {
+      const resultado = await chamarAdminUserFunction({ action: 'delete', user_id: userId });
+      if (!resultado) return;
+      showToast('Usuário excluído com sucesso!', 'success');
+      carregarUsuarios();
+    }
+  });
 }
 
 // ============================================
@@ -4949,8 +5082,15 @@ async function baixarAnexo(storagePath) {
   window.open(data.signedUrl, '_blank');
 }
 
-async function excluirAnexo(anexoId, storagePath, lancamentoId) {
-  if (!confirm('Excluir este anexo?')) return;
+function excluirAnexo(anexoId, storagePath, lancamentoId) {
+  confirmar({
+    titulo: 'Excluir anexo',
+    mensagem: 'Excluir este anexo? O arquivo será removido permanentemente.',
+    onConfirmar: () => excluirAnexoConfirmado(anexoId, storagePath, lancamentoId)
+  });
+}
+
+async function excluirAnexoConfirmado(anexoId, storagePath, lancamentoId) {
 
   const { error: storageError } = await sb.storage.from('anexos').remove([storagePath]);
   if (storageError) {
@@ -5184,16 +5324,14 @@ function marcarComoRecebido(lancamentoId) {
 async function confirmarExclusaoLancamento(id, tipo) {
   const { data: l } = await sb.from('lancamentos').select('descricao').eq('id', id).single();
   const descricao = l?.descricao || 'este lançamento';
-  const confirmado = confirm(
-    `⚠️ Excluir "${descricao}"?\n\n` +
-    `Essa ação não pode ser desfeita. O registro completo fica salvo ` +
-    `no histórico de Auditoria, mas o lançamento sai definitivamente da lista.\n\n` +
-    `Deseja continuar?`
-  );
-
-  if (confirmado) {
-    excluirLancamento(id, tipo);
-  }
+  confirmar({
+    titulo: 'Excluir lançamento',
+    mensagem: `
+      <p style="margin-bottom:12px">Excluir <strong>${esc(descricao)}</strong>?</p>
+      <p>Essa ação não pode ser desfeita. O registro completo fica salvo no
+      histórico de Auditoria, mas o lançamento sai definitivamente da lista.</p>`,
+    onConfirmar: () => excluirLancamento(id, tipo)
+  });
 }
 
 async function excluirLancamento(id, tipo) {
@@ -5331,18 +5469,18 @@ async function salvarParceiro() {
   carregarParceiros();
 }
 
-async function excluirParceiro(id) {
+function excluirParceiro(id) {
   const nome = ultimosParceirosCarregados.find(p => p.id === id)?.nome || 'este cadastro';
-  if (!confirm(`Excluir "${nome}"? Lançamentos já vinculados a ele não serão afetados.`)) return;
-
-  const { error } = await sb.from('parceiros').delete().eq('id', id);
-  if (error) {
-    showToast('Erro ao excluir: ' + error.message, 'error');
-    return;
-  }
-
-  showToast('Excluído com sucesso!', 'success');
-  carregarParceiros();
+  confirmar({
+    titulo: 'Excluir cadastro',
+    mensagem: `Excluir <strong>${esc(nome)}</strong>? Lançamentos já vinculados a ele não serão afetados.`,
+    onConfirmar: async () => {
+      const { error } = await sb.from('parceiros').delete().eq('id', id);
+      if (error) { showToast('Erro ao excluir: ' + error.message, 'error'); return; }
+      showToast('Excluído com sucesso!', 'success');
+      carregarParceiros();
+    }
+  });
 }
 
 function exportarParceiros() {
@@ -5529,18 +5667,18 @@ async function salvarRecorrencia() {
   carregarRecorrencias();
 }
 
-async function excluirRecorrencia(id) {
+function excluirRecorrencia(id) {
   const descricao = ultimasRecorrenciasCarregadas.find(r => r.id === id)?.descricao || 'esta recorrência';
-  if (!confirm(`Excluir a recorrência "${descricao}"? Lançamentos já gerados por ela não serão apagados.`)) return;
-
-  const { error } = await sb.from('recorrencias').delete().eq('id', id);
-  if (error) {
-    showToast('Erro ao excluir: ' + error.message, 'error');
-    return;
-  }
-
-  showToast('Recorrência excluída!', 'success');
-  carregarRecorrencias();
+  confirmar({
+    titulo: 'Excluir recorrência',
+    mensagem: `Excluir <strong>${esc(descricao)}</strong>? Lançamentos já gerados por ela não serão apagados.`,
+    onConfirmar: async () => {
+      const { error } = await sb.from('recorrencias').delete().eq('id', id);
+      if (error) { showToast('Erro ao excluir: ' + error.message, 'error'); return; }
+      showToast('Recorrência excluída!', 'success');
+      carregarRecorrencias();
+    }
+  });
 }
 
 // ============================================
@@ -5669,18 +5807,18 @@ async function salvarPrazoFiscal() {
   carregarPrazosFiscais();
 }
 
-async function excluirPrazoFiscal(id) {
+function excluirPrazoFiscal(id) {
   const nome = ultimosPrazosFiscaisCarregados.find(p => p.id === id)?.nome || 'este prazo';
-  if (!confirm(`Excluir o prazo fiscal "${nome}"?`)) return;
-
-  const { error } = await sb.from('prazos_fiscais').delete().eq('id', id);
-  if (error) {
-    showToast('Erro ao excluir: ' + error.message, 'error');
-    return;
-  }
-
-  showToast('Prazo fiscal excluído!', 'success');
-  carregarPrazosFiscais();
+  confirmar({
+    titulo: 'Excluir prazo fiscal',
+    mensagem: `Excluir <strong>${esc(nome)}</strong>? Os alertas automáticos desse prazo deixarão de ser enviados.`,
+    onConfirmar: async () => {
+      const { error } = await sb.from('prazos_fiscais').delete().eq('id', id);
+      if (error) { showToast('Erro ao excluir: ' + error.message, 'error'); return; }
+      showToast('Prazo fiscal excluído!', 'success');
+      carregarPrazosFiscais();
+    }
+  });
 }
 
 // Gera alertas (notificação) quando um prazo fiscal está a até 5 dias
@@ -5910,8 +6048,15 @@ async function salvarDocumentoGeral() {
   carregarDocumentosGerais();
 }
 
-async function excluirDocumentoGeral(id, storagePath) {
-  if (!confirm('Excluir este documento?')) return;
+function excluirDocumentoGeral(id, storagePath) {
+  confirmar({
+    titulo: 'Excluir documento',
+    mensagem: 'Excluir este documento? O arquivo será removido permanentemente.',
+    onConfirmar: () => excluirDocumentoGeralConfirmado(id, storagePath)
+  });
+}
+
+async function excluirDocumentoGeralConfirmado(id, storagePath) {
 
   const { error: storageError } = await sb.storage.from('anexos').remove([storagePath]);
   if (storageError) {
@@ -6023,18 +6168,18 @@ async function salvarCategoria() {
   carregarCategorias();
 }
 
-async function excluirCategoria(id) {
+function excluirCategoria(id) {
   const nome = ultimasCategoriasCarregadas.find(c => c.id === id)?.nome || 'esta categoria';
-  if (!confirm(`Excluir a categoria "${nome}"? Lançamentos que já usam esse texto não serão afetados.`)) return;
-
-  const { error } = await sb.from('categorias').delete().eq('id', id);
-  if (error) {
-    showToast('Erro ao excluir: ' + error.message, 'error');
-    return;
-  }
-
-  showToast('Categoria excluída!', 'success');
-  carregarCategorias();
+  confirmar({
+    titulo: 'Excluir categoria',
+    mensagem: `Excluir <strong>${esc(nome)}</strong>? Lançamentos que já usam esse texto não serão afetados.`,
+    onConfirmar: async () => {
+      const { error } = await sb.from('categorias').delete().eq('id', id);
+      if (error) { showToast('Erro ao excluir: ' + error.message, 'error'); return; }
+      showToast('Categoria excluída!', 'success');
+      carregarCategorias();
+    }
+  });
 }
 
 // Popula o seletor de categorias dos modais de lançamento, filtrando
@@ -6178,14 +6323,99 @@ function exportarIndicadores() {
 // ============================================
 // MODALS
 // ============================================
+// Guarda qual elemento abriu o modal, pra devolver o foco ao fechar
+let gatilhoModalAnterior = null;
+
 function openModal(id) {
-  document.getElementById(id).classList.add('open');
+  const modal = document.getElementById(id);
+  gatilhoModalAnterior = document.activeElement;
+
+  modal.classList.add('open');
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
   document.body.style.overflow = 'hidden';
+
+  // Foca o primeiro campo útil (ignora o botão de fechar)
+  const focaveis = modal.querySelectorAll(
+    'input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(.modal-close)'
+  );
+  if (focaveis.length) setTimeout(() => focaveis[0].focus(), 50);
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
+  const modal = document.getElementById(id);
+  modal.classList.remove('open');
+  modal.removeAttribute('aria-modal');
   document.body.style.overflow = '';
+
+  // Devolve o foco a quem abriu o modal
+  if (gatilhoModalAnterior && typeof gatilhoModalAnterior.focus === 'function') {
+    gatilhoModalAnterior.focus();
+    gatilhoModalAnterior = null;
+  }
+}
+
+// Focus trap: Tab não escapa do modal aberto
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const modal = document.querySelector('.modal-overlay.open .modal');
+  if (!modal) return;
+
+  const focaveis = Array.from(modal.querySelectorAll(
+    'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+  )).filter(el => el.offsetParent !== null);
+
+  if (!focaveis.length) return;
+  const primeiro = focaveis[0];
+  const ultimo = focaveis[focaveis.length - 1];
+
+  if (e.shiftKey && document.activeElement === primeiro) {
+    e.preventDefault();
+    ultimo.focus();
+  } else if (!e.shiftKey && document.activeElement === ultimo) {
+    e.preventDefault();
+    primeiro.focus();
+  }
+});
+
+// Fecha o modal ao clicar no overlay (fora do conteúdo)
+document.addEventListener('click', (e) => {
+  if (e.target.classList && e.target.classList.contains('modal-overlay') && e.target.classList.contains('open')) {
+    closeModal(e.target.id);
+  }
+});
+
+// ============================================
+// MODAL DE CONFIRMAÇÃO (substitui o confirm() nativo)
+// Mostra o nome do registro e o botão destrutivo à direita.
+// ============================================
+let confirmacaoCallback = null;
+
+function confirmar(opcoes) {
+  const { titulo, mensagem, textoBotao = 'Excluir', destrutivo = true, onConfirmar } = opcoes;
+
+  document.getElementById('confirm-titulo').textContent = titulo;
+  document.getElementById('confirm-mensagem').innerHTML = mensagem;
+
+  const btn = document.getElementById('confirm-botao');
+  btn.textContent = textoBotao;
+  btn.className = destrutivo ? 'btn danger' : 'btn';
+
+  confirmacaoCallback = onConfirmar;
+  openModal('modal-confirmacao');
+}
+
+async function executarConfirmacao() {
+  const btn = document.getElementById('confirm-botao');
+  btn.classList.add('is-loading');
+
+  try {
+    if (confirmacaoCallback) await confirmacaoCallback();
+  } finally {
+    btn.classList.remove('is-loading');
+    confirmacaoCallback = null;
+    closeModal('modal-confirmacao');
+  }
 }
 
 function saveModal(id, msg) {
@@ -6346,7 +6576,13 @@ async function marcarTodasNotificacoesComoLidas() {
 // ============================================
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.open').forEach(m => closeModal(m.id));
+    // Fecha modal aberto ou, se não houver, o painel de notificações
+    const abertos = document.querySelectorAll('.modal-overlay.open');
+    if (abertos.length) {
+      abertos.forEach(m => closeModal(m.id));
+    } else {
+      document.getElementById('notificacoes-panel')?.classList.remove('open');
+    }
   }
 });
 
