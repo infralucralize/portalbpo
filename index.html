@@ -1759,6 +1759,13 @@
         <label>Observações (opcional)</label>
         <input type="text" id="pagar-form-observacoes" placeholder="Ex: número do boleto, condições, etc.">
       </div>
+      <div class="form-group">
+        <label>Anexar comprovante/NF (opcional)</label>
+        <input type="file" id="pagar-form-anexos" multiple>
+        <div style="font-size:12px;color:#94A3B8;margin-top:4px">
+          Tipos aceitos: PDF, JPG, PNG ou XML — máximo 10MB por arquivo. Pode selecionar mais de um.
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeModal('modal-pagar')">Cancelar</button>
@@ -1806,6 +1813,13 @@
         <label>Observações (opcional)</label>
         <input type="text" id="receber-form-observacoes" placeholder="Ex: Condição de pagamento, nº do boleto, etc.">
       </div>
+      <div class="form-group">
+        <label>Anexar documento (opcional)</label>
+        <input type="file" id="receber-form-anexos" multiple>
+        <div style="font-size:12px;color:#94A3B8;margin-top:4px">
+          Tipos aceitos: PDF, JPG, PNG ou XML — máximo 10MB por arquivo. Pode selecionar mais de um.
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeModal('modal-receber')">Cancelar</button>
@@ -1834,8 +1848,11 @@
         </div>
 
         <div class="can-create" style="display:flex;gap:8px;align-items:center">
-          <input type="file" id="detalhe-anexo-input" style="flex:1;font-size:13px">
+          <input type="file" id="detalhe-anexo-input" multiple style="flex:1;font-size:13px">
           <button class="btn" style="white-space:nowrap" onclick="enviarAnexo()">Enviar</button>
+        </div>
+        <div style="font-size:12px;color:#94A3B8;margin-top:6px" class="can-create">
+          Tipos aceitos: PDF, JPG, PNG ou XML — máximo 10MB por arquivo.
         </div>
       </div>
     </div>
@@ -2553,7 +2570,7 @@ async function salvarNovoLancamento(tipo) {
     return;
   }
 
-  const { error } = await sb.from('lancamentos').insert({
+  const { data: novoLancamento, error } = await sb.from('lancamentos').insert({
     empresa_id: empresaId,
     tipo: tipo,
     descricao: descricao,
@@ -2563,11 +2580,22 @@ async function salvarNovoLancamento(tipo) {
     observacoes: observacoes,
     forma_pagamento: formaPagamento,
     criado_por: currentUser.id
-  });
+  }).select().single();
 
   if (error) {
     showToast('Erro ao salvar lançamento: ' + error.message, 'error');
     return;
+  }
+
+  // Envia os anexos selecionados no formulário, se houver
+  const inputAnexos = document.getElementById(`${prefixo}-form-anexos`);
+  let avisoAnexos = '';
+  if (inputAnexos && inputAnexos.files.length > 0) {
+    const resultadoUpload = await uploadArquivosAnexo(inputAnexos.files, novoLancamento.id, empresaId);
+    if (resultadoUpload.falhas.length > 0) {
+      avisoAnexos = ` (${resultadoUpload.sucesso} anexo(s) enviado(s), ${resultadoUpload.falhas.length} falhou: ${resultadoUpload.falhas.join('; ')})`;
+    }
+    inputAnexos.value = '';
   }
 
   // Limpa o formulário
@@ -2579,10 +2607,65 @@ async function salvarNovoLancamento(tipo) {
   if (formaPagamentoEl) formaPagamentoEl.value = '';
 
   closeModal(`modal-${prefixo}`);
-  showToast(`Lançamento a ${tipo === 'pagar' ? 'pagar' : 'receber'} criado com sucesso!`, 'success');
+  showToast(`Lançamento a ${tipo === 'pagar' ? 'pagar' : 'receber'} criado com sucesso!${avisoAnexos}`, avisoAnexos ? 'error' : 'success');
 
   if (tipo === 'pagar') carregarContasPagar();
   if (tipo === 'receber') carregarContasReceber();
+}
+
+// Tipos e tamanho aceitos para anexos (batem com o bucket 'anexos' no Storage)
+const TIPOS_ANEXO_ACEITOS = ['application/pdf', 'image/jpeg', 'image/png', 'application/xml', 'text/xml'];
+const TAMANHO_MAXIMO_ANEXO = 10 * 1024 * 1024; // 10MB
+
+function validarArquivoAnexo(arquivo) {
+  if (!TIPOS_ANEXO_ACEITOS.includes(arquivo.type)) {
+    return `"${arquivo.name}": tipo não permitido (aceitos: PDF, JPG, PNG, XML)`;
+  }
+  if (arquivo.size > TAMANHO_MAXIMO_ANEXO) {
+    return `"${arquivo.name}": maior que 10MB`;
+  }
+  return null;
+}
+
+// Faz upload de vários arquivos de uma vez, validando tipo/tamanho antes.
+// Usado tanto na criação do lançamento quanto no modal de detalhe.
+async function uploadArquivosAnexo(fileList, lancamentoId, empresaId) {
+  let sucesso = 0;
+  const falhas = [];
+
+  for (const arquivo of fileList) {
+    const erroValidacao = validarArquivoAnexo(arquivo);
+    if (erroValidacao) {
+      falhas.push(erroValidacao);
+      continue;
+    }
+
+    const caminho = `${empresaId}/${lancamentoId}/${Date.now()}_${arquivo.name}`;
+    const { error: uploadError } = await sb.storage.from('anexos').upload(caminho, arquivo);
+    if (uploadError) {
+      falhas.push(`"${arquivo.name}": ${uploadError.message}`);
+      continue;
+    }
+
+    const { error: insertError } = await sb.from('anexos').insert({
+      empresa_id: empresaId,
+      lancamento_id: lancamentoId,
+      storage_path: caminho,
+      nome_arquivo: arquivo.name,
+      tipo_arquivo: arquivo.type,
+      tamanho_bytes: arquivo.size,
+      uploaded_by: currentUser.id
+    });
+
+    if (insertError) {
+      falhas.push(`"${arquivo.name}": ${insertError.message}`);
+      continue;
+    }
+
+    sucesso++;
+  }
+
+  return { sucesso, falhas };
 }
 
 // ============================================
@@ -2894,40 +2977,24 @@ async function carregarAnexosDoLancamento(lancamentoId) {
 
 async function enviarAnexo() {
   const input = document.getElementById('detalhe-anexo-input');
-  const arquivo = input.files[0];
 
-  if (!arquivo) {
+  if (!input.files.length) {
     showToast('Selecione um arquivo antes de enviar.', 'error');
     return;
   }
   if (!detalheLancamentoAtual) return;
 
   const { id: lancamentoId, empresa_id: empresaId } = detalheLancamentoAtual;
-  const caminho = `${empresaId}/${lancamentoId}/${Date.now()}_${arquivo.name}`;
-
-  const { error: uploadError } = await sb.storage.from('anexos').upload(caminho, arquivo);
-  if (uploadError) {
-    showToast('Erro ao enviar arquivo: ' + uploadError.message, 'error');
-    return;
-  }
-
-  const { error: insertError } = await sb.from('anexos').insert({
-    empresa_id: empresaId,
-    lancamento_id: lancamentoId,
-    storage_path: caminho,
-    nome_arquivo: arquivo.name,
-    tipo_arquivo: arquivo.type,
-    tamanho_bytes: arquivo.size,
-    uploaded_by: currentUser.id
-  });
-
-  if (insertError) {
-    showToast('Erro ao registrar anexo: ' + insertError.message, 'error');
-    return;
-  }
+  const resultado = await uploadArquivosAnexo(input.files, lancamentoId, empresaId);
 
   input.value = '';
-  showToast('Anexo enviado com sucesso!', 'success');
+
+  if (resultado.falhas.length > 0) {
+    showToast(`${resultado.sucesso} anexo(s) enviado(s). Falhas: ${resultado.falhas.join('; ')}`, 'error');
+  } else {
+    showToast('Anexo(s) enviado(s) com sucesso!', 'success');
+  }
+
   carregarAnexosDoLancamento(lancamentoId);
 }
 
