@@ -1206,6 +1206,10 @@
         <div class="nav-icon">👤</div>
         Usuários
       </div>
+      <div class="nav-item admin-only" data-screen="auditoria" style="display:none">
+        <div class="nav-icon">📜</div>
+        Auditoria
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -1759,9 +1763,63 @@
         </div>
       </div>
 
+      <!-- ============ AUDITORIA (só admin_lucralize) ============ -->
+      <div class="screen" id="screen-auditoria">
+        <div class="toolbar">
+          <div>
+            <h2>Auditoria</h2>
+            <div class="subtitle" id="auditoria-subtitle">Histórico de alterações no sistema</div>
+          </div>
+          <div class="toolbar-actions">
+            <select id="auditoria-filtro-tabela" onchange="carregarAuditoria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px">
+              <option value="">Todas as tabelas</option>
+              <option value="lancamentos">Lançamentos</option>
+              <option value="conciliacao_bancaria">Conciliação Bancária</option>
+              <option value="empresas">Empresas</option>
+              <option value="perfis">Usuários</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="auditoria-table">
+              <thead>
+                <tr>
+                  <th>Data/hora</th>
+                  <th>Tabela</th>
+                  <th>Ação</th>
+                  <th>Usuário</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div><!-- /content -->
   </div><!-- /main -->
 </div><!-- /app -->
+
+<!-- ====================== MODAL: DETALHE DA AUDITORIA ====================== -->
+<div class="modal-overlay" id="modal-auditoria-detalhe">
+  <div class="modal">
+    <div class="modal-header">
+      <div><h3>Detalhe da alteração</h3></div>
+      <button class="modal-close" onclick="closeModal('modal-auditoria-detalhe')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="auditoria-detalhe-conteudo" style="font-size:12px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-auditoria-detalhe')">Fechar</button>
+    </div>
+  </div>
+</div>
 
 
 <!-- ====================== MODAL: NOVO LANÇAMENTO PAGAR ====================== -->
@@ -2152,6 +2210,7 @@ function navigate(key) {
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
   if (key === 'usuarios') carregarUsuarios();
+  if (key === 'auditoria') carregarAuditoria();
 }
 
 // Retorna o empresa_id atualmente selecionado no seletor do sidebar
@@ -3029,6 +3088,73 @@ async function excluirUsuario(userId, nome) {
 
   showToast('Usuário excluído com sucesso!', 'success');
   carregarUsuarios();
+}
+
+// ============================================
+// AUDITORIA (só admin_lucralize)
+// ============================================
+let ultimaAuditoriaCarregada = [];
+
+const TABELA_LABEL = {
+  lancamentos: 'Lançamento',
+  conciliacao_bancaria: 'Conciliação',
+  empresas: 'Empresa',
+  perfis: 'Usuário',
+};
+
+const ACAO_LABEL = {
+  INSERT: 'Criado',
+  UPDATE: 'Atualizado',
+  DELETE: 'Excluído',
+};
+
+async function carregarAuditoria() {
+  const tbody = document.querySelector('#auditoria-table tbody');
+  const filtro = document.getElementById('auditoria-filtro-tabela').value;
+
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  let query = sb.from('auditoria').select('*, perfis(nome)').order('created_at', { ascending: false }).limit(100);
+  if (filtro) query = query.eq('tabela', filtro);
+
+  const { data, error } = await query;
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  ultimaAuditoriaCarregada = data;
+  document.getElementById('auditoria-subtitle').textContent = `${data.length} registro(s) (últimos 100)`;
+
+  tbody.innerHTML = data.length
+    ? data.map(a => `
+        <tr>
+          <td>${new Date(a.created_at).toLocaleString('pt-BR')}</td>
+          <td>${TABELA_LABEL[a.tabela] || a.tabela}</td>
+          <td>${ACAO_LABEL[a.acao] || a.acao}</td>
+          <td>${a.perfis?.nome || 'Sistema (automático)'}</td>
+          <td><button class="action-btn view" onclick="verDetalheAuditoria('${a.id}')">Ver detalhes</button></td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Nenhum registro encontrado</td></tr>';
+}
+
+function verDetalheAuditoria(id) {
+  const registro = ultimaAuditoriaCarregada.find(a => a.id === id);
+  if (!registro) return;
+
+  const conteudo = document.getElementById('auditoria-detalhe-conteudo');
+  conteudo.innerHTML = `
+    <div style="margin-bottom:10px"><strong>Tabela:</strong> ${TABELA_LABEL[registro.tabela] || registro.tabela}</div>
+    <div style="margin-bottom:10px"><strong>Ação:</strong> ${ACAO_LABEL[registro.acao] || registro.acao}</div>
+    <div style="margin-bottom:10px"><strong>Usuário:</strong> ${registro.perfis?.nome || 'Sistema (automático)'}</div>
+    <div style="margin-bottom:10px"><strong>Quando:</strong> ${new Date(registro.created_at).toLocaleString('pt-BR')}</div>
+    ${registro.dados_antes ? `<div style="margin-top:14px"><strong>Antes:</strong><pre style="background:#F5F7F8;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_antes, null, 2)}</pre></div>` : ''}
+    ${registro.dados_depois ? `<div style="margin-top:14px"><strong>Depois:</strong><pre style="background:#F5F7F8;padding:10px;border-radius:6px;overflow-x:auto;font-size:11px">${JSON.stringify(registro.dados_depois, null, 2)}</pre></div>` : ''}
+  `;
+
+  openModal('modal-auditoria-detalhe');
 }
 
 // ============================================
