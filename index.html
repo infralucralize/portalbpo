@@ -1652,8 +1652,48 @@
             <div class="subtitle" id="conciliacao-subtitle">Extrato bancário × lançamentos internos</div>
           </div>
           <div class="toolbar-actions">
-            <button class="btn ghost" onclick="carregarConciliacao()">🔄 Atualizar extrato</button>
-            <button class="btn can-approve" onclick="adicionarItemExtrato()">+ Lançar item do extrato</button>
+            <select id="conta-bancaria-select" onchange="onTrocarContaBancaria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;min-width:200px">
+              <option value="">Carregando contas...</option>
+            </select>
+            <button class="btn ghost can-approve" onclick="abrirFormNovaContaBancaria()">+ Nova conta</button>
+            <button class="btn ghost" onclick="carregarConciliacao()">🔄 Atualizar</button>
+            <button class="btn can-approve" onclick="adicionarItemExtrato()">+ Lançar item</button>
+          </div>
+        </div>
+
+        <div class="card can-approve" id="form-nova-conta-bancaria" style="display:none">
+          <div class="card-header"><h3>Cadastrar conta bancária</h3></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Banco</label>
+              <input type="text" id="conta-form-banco" placeholder="Ex: Banco do Brasil, Nubank, Caixa (dinheiro)...">
+            </div>
+            <div class="form-group">
+              <label>Tipo de conta</label>
+              <select id="conta-form-tipo">
+                <option>Corrente</option>
+                <option>Poupança</option>
+                <option>Caixa</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Agência (opcional)</label>
+              <input type="text" id="conta-form-agencia" placeholder="0042-1">
+            </div>
+            <div class="form-group">
+              <label>Número da conta (opcional)</label>
+              <input type="text" id="conta-form-numero" placeholder="12345-6">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Saldo inicial (R$)</label>
+            <input type="number" id="conta-form-saldo-inicial" placeholder="0,00" step="0.01">
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovaContaBancaria()">Cancelar</button>
+            <button class="btn" onclick="salvarNovaContaBancaria()">Salvar conta</button>
           </div>
         </div>
 
@@ -1669,9 +1709,9 @@
             <div class="kpi-delta neutral" id="conc-kpi-taxa"></div>
           </div>
           <div class="kpi-card" style="--accent:#0C7488">
-            <div class="kpi-label">Saldo extrato</div>
+            <div class="kpi-label">Saldo da conta</div>
             <div class="kpi-value" id="conc-kpi-saldo">—</div>
-            <div class="kpi-delta neutral">Saldo dos itens lançados</div>
+            <div class="kpi-delta neutral">Saldo inicial + movimentos</div>
           </div>
         </div>
 
@@ -2628,23 +2668,129 @@ async function carregarFluxoCaixa(dias) {
   buildFlowChartReal('flow-chart-big', dias > 60 ? 60 : dias, 160, lancs);
 }
 
+let contaBancariaAtualId = null;
+let contasBancariasCarregadas = [];
+
+// Carrega as contas bancárias da empresa selecionada no dropdown
+async function carregarContasBancariasSelect() {
+  const empresaId = empresaAtualId();
+  const sel = document.getElementById('conta-bancaria-select');
+  if (!empresaId) return;
+
+  const { data: contas, error } = await sb
+    .from('contas_bancarias')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .eq('ativa', true)
+    .order('banco');
+
+  if (error) {
+    sel.innerHTML = '<option value="">Erro ao carregar contas</option>';
+    return;
+  }
+
+  contasBancariasCarregadas = contas;
+
+  if (!contas.length) {
+    sel.innerHTML = '<option value="">Nenhuma conta cadastrada</option>';
+    contaBancariaAtualId = null;
+    return;
+  }
+
+  sel.innerHTML = contas.map(c => `<option value="${c.id}">${c.banco} — ${c.tipo_conta}${c.numero_conta ? ' · ' + c.numero_conta : ''}</option>`).join('');
+
+  // Mantém a conta já selecionada se ainda existir na lista, senão pega a primeira
+  if (!contaBancariaAtualId || !contas.find(c => c.id === contaBancariaAtualId)) {
+    contaBancariaAtualId = contas[0].id;
+  }
+  sel.value = contaBancariaAtualId;
+}
+
+function onTrocarContaBancaria() {
+  contaBancariaAtualId = document.getElementById('conta-bancaria-select').value || null;
+  carregarConciliacao();
+}
+
+function abrirFormNovaContaBancaria() {
+  document.getElementById('form-nova-conta-bancaria').style.display = 'block';
+}
+function fecharFormNovaContaBancaria() {
+  document.getElementById('form-nova-conta-bancaria').style.display = 'none';
+  document.getElementById('conta-form-banco').value = '';
+  document.getElementById('conta-form-agencia').value = '';
+  document.getElementById('conta-form-numero').value = '';
+  document.getElementById('conta-form-saldo-inicial').value = '';
+}
+
+async function salvarNovaContaBancaria() {
+  const banco = document.getElementById('conta-form-banco').value.trim();
+  const tipoConta = document.getElementById('conta-form-tipo').value;
+  const agencia = document.getElementById('conta-form-agencia').value.trim() || null;
+  const numeroConta = document.getElementById('conta-form-numero').value.trim() || null;
+  const saldoInicialStr = document.getElementById('conta-form-saldo-inicial').value;
+  const saldoInicial = saldoInicialStr ? parseFloat(saldoInicialStr) : 0;
+
+  if (!banco) {
+    showToast('Informe o nome do banco.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  if (!empresaId) {
+    showToast('Selecione uma empresa antes.', 'error');
+    return;
+  }
+
+  const { data: novaConta, error } = await sb.from('contas_bancarias').insert({
+    empresa_id: empresaId,
+    banco, tipo_conta: tipoConta, agencia, numero_conta: numeroConta,
+    saldo_inicial: saldoInicial
+  }).select().single();
+
+  if (error) {
+    showToast('Erro ao criar conta: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Conta bancária cadastrada com sucesso!', 'success');
+  fecharFormNovaContaBancaria();
+  contaBancariaAtualId = novaConta.id;
+  await carregarContasBancariasSelect();
+  carregarConciliacao();
+}
+
 async function carregarConciliacao() {
   const empresaId = empresaAtualId();
   const container = document.getElementById('conciliacao-container');
   if (!empresaId) return;
 
+  // Garante que o seletor de contas está populado (ex: primeira vez que a tela abre)
+  if (!contasBancariasCarregadas.length) await carregarContasBancariasSelect();
+
   container.innerHTML = '<div style="text-align:center;padding:24px;color:#94A3B8">Carregando...</div>';
 
-  // Nome da empresa no subtítulo (em vez do nome de banco fixo que havia antes)
+  // Nome da empresa no subtítulo
   const sel = document.getElementById('empresa-select');
   const nomeEmpresaSelecionada = sel.selectedOptions[0]?.textContent || '';
   document.getElementById('conciliacao-subtitle').textContent =
     nomeEmpresaSelecionada ? `${nomeEmpresaSelecionada} — extrato × lançamentos internos` : 'Extrato bancário × lançamentos internos';
 
+  if (!contaBancariaAtualId) {
+    container.innerHTML = '<div style="text-align:center;padding:32px;color:#94A3B8">Nenhuma conta bancária cadastrada para esta empresa.<br>Cadastre uma conta pra começar a conciliar o extrato.</div>';
+    document.getElementById('conc-kpi-pendentes').textContent = '—';
+    document.getElementById('conc-kpi-mes').textContent = '—';
+    document.getElementById('conc-kpi-taxa').textContent = '';
+    document.getElementById('conc-kpi-saldo').textContent = '—';
+    return;
+  }
+
+  const contaAtual = contasBancariasCarregadas.find(c => c.id === contaBancariaAtualId);
+
   const { data: itens, error } = await sb
     .from('conciliacao_bancaria')
     .select('*')
     .eq('empresa_id', empresaId)
+    .eq('conta_bancaria_id', contaBancariaAtualId)
     .order('data_movimento', { ascending: false });
 
   if (error) {
@@ -2664,13 +2810,17 @@ async function carregarConciliacao() {
     return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear();
   });
   const taxaConciliacao = itens.length > 0 ? (conciliados.length / itens.length * 100) : 0;
-  const saldoExtrato = itens.reduce((s, i) => s + Number(i.valor), 0);
+
+  // Saldo real = saldo inicial da conta + todos os movimentos já lançados no extrato
+  // (pendente ou conciliado — ambos representam movimentação bancária que já ocorreu de fato)
+  const somaMovimentos = itens.reduce((s, i) => s + Number(i.valor), 0);
+  const saldoConta = Number(contaAtual?.saldo_inicial || 0) + somaMovimentos;
 
   document.getElementById('conc-kpi-pendentes').textContent = pendentes.length;
   atualizarBadgeMenu('badge-conc', pendentes.length);
   document.getElementById('conc-kpi-mes').textContent = conciliadosMes.length;
   document.getElementById('conc-kpi-taxa').textContent = `${taxaConciliacao.toFixed(0)}% taxa de conciliação`;
-  document.getElementById('conc-kpi-saldo').textContent = formatarMoeda(saldoExtrato);
+  document.getElementById('conc-kpi-saldo').textContent = formatarMoeda(saldoConta);
 
   const renderItem = (item, isPending) => {
     const valorFmt = formatarMoeda(Math.abs(item.valor));
@@ -2746,6 +2896,11 @@ async function conciliarItemReal(itemId) {
 // Cadastro manual de item do extrato (versão simples via prompt,
 // enquanto não temos um formulário dedicado)
 async function adicionarItemExtrato() {
+  if (!contaBancariaAtualId) {
+    showToast('Cadastre uma conta bancária antes de lançar itens do extrato.', 'error');
+    return;
+  }
+
   const descricao = prompt('Descrição do lançamento no extrato:');
   if (!descricao) return;
 
@@ -2763,6 +2918,7 @@ async function adicionarItemExtrato() {
   const empresaId = empresaAtualId();
   const { error } = await sb.from('conciliacao_bancaria').insert({
     empresa_id: empresaId,
+    conta_bancaria_id: contaBancariaAtualId,
     descricao_extrato: descricao,
     valor: valor,
     data_movimento: dataStr,
@@ -3902,6 +4058,8 @@ function showToast(msg, type = 'success') {
 // ============================================
 function changeEmpresa(val) {
   showToast('Empresa alterada. Dados atualizados.', 'info');
+  contaBancariaAtualId = null;
+  contasBancariasCarregadas = [];
   const screenAtiva = document.querySelector('.screen.active');
   if (screenAtiva && screenAtiva.id === 'screen-dashboard') carregarDashboard();
   if (screenAtiva && screenAtiva.id === 'screen-pagar') carregarContasPagar();
