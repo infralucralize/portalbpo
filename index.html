@@ -1191,6 +1191,10 @@
         Contas a Receber
         <span class="nav-badge" id="badge-receber" style="display:none">0</span>
       </div>
+      <div class="nav-item" data-screen="parceiros">
+        <div class="nav-icon">🤝</div>
+        Fornecedores/Clientes
+      </div>
       <div class="nav-section-label">Análise</div>
       <div class="nav-item" data-screen="fluxo">
         <div class="nav-icon">∿</div>
@@ -1435,7 +1439,7 @@
           </div>
           <div class="toolbar-actions">
             <button class="btn ghost" onclick="exportarContasPagar()">📄 Exportar</button>
-            <button class="btn can-create" onclick="openModal('modal-pagar')">+ Novo lançamento</button>
+            <button class="btn can-create" onclick="abrirModalNovoLancamento('pagar')">+ Novo lançamento</button>
           </div>
         </div>
 
@@ -1479,7 +1483,7 @@
           </div>
           <div class="toolbar-actions">
             <button class="btn ghost" onclick="exportarContasReceber()">📄 Exportar</button>
-            <button class="btn can-create" onclick="openModal('modal-receber')">+ Novo lançamento</button>
+            <button class="btn can-create" onclick="abrirModalNovoLancamento('receber')">+ Novo lançamento</button>
           </div>
         </div>
 
@@ -1500,6 +1504,84 @@
                   <th>Vencimento</th>
                   <th>Dias em aberto</th>
                   <th>Valor</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ FORNECEDORES/CLIENTES ============ -->
+      <div class="screen" id="screen-parceiros">
+        <div class="toolbar">
+          <div>
+            <h2>Fornecedores/Clientes</h2>
+            <div class="subtitle" id="parceiros-subtitle">Cadastro de fornecedores e clientes</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn ghost" onclick="exportarParceiros()">📄 Exportar</button>
+            <button class="btn can-create" onclick="abrirFormNovoParceiro()">+ Novo cadastro</button>
+          </div>
+        </div>
+
+        <div class="card can-create" id="form-novo-parceiro" style="display:none">
+          <div class="card-header"><h3 id="parceiro-form-titulo">Cadastrar fornecedor/cliente</h3></div>
+          <input type="hidden" id="parceiro-form-id" value="">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="parceiro-form-nome" placeholder="Nome ou razão social">
+            </div>
+            <div class="form-group">
+              <label>CNPJ/CPF (opcional)</label>
+              <input type="text" id="parceiro-form-documento" placeholder="00.000.000/0001-00">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo</label>
+              <select id="parceiro-form-tipo">
+                <option value="ambos">Fornecedor e Cliente</option>
+                <option value="fornecedor">Só Fornecedor (Contas a Pagar)</option>
+                <option value="cliente">Só Cliente (Contas a Receber)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>E-mail (opcional)</label>
+              <input type="email" id="parceiro-form-email" placeholder="contato@empresa.com.br">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Telefone (opcional)</label>
+            <input type="text" id="parceiro-form-telefone" placeholder="(00) 00000-0000">
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovoParceiro()">Cancelar</button>
+            <button class="btn" onclick="salvarParceiro()">Salvar</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="filter-chip active" data-filter-group="parceiros" data-filter="todos" onclick="filtrarParceiros('todos', this)">Todos</div>
+          <div class="filter-chip" data-filter-group="parceiros" data-filter="fornecedor" onclick="filtrarParceiros('fornecedor', this)">Fornecedores</div>
+          <div class="filter-chip" data-filter-group="parceiros" data-filter="cliente" onclick="filtrarParceiros('cliente', this)">Clientes</div>
+          <input type="text" class="search-input" placeholder="🔍  Buscar por nome..." oninput="buscarParceiros(this.value)">
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="parceiros-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>CNPJ/CPF</th>
+                  <th>Tipo</th>
+                  <th>Contato</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
@@ -1914,8 +1996,14 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
+        <label>Fornecedor (opcional)</label>
+        <select id="pagar-form-parceiro">
+          <option value="">Nenhum / não cadastrado</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Descrição</label>
-        <input type="text" id="pagar-form-descricao" placeholder="Ex: Compra de insumos — NF 4521 (fornecedor: Distribuidora Alfa)">
+        <input type="text" id="pagar-form-descricao" placeholder="Ex: Compra de insumos — NF 4521">
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -1982,8 +2070,14 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label>Descrição / Cliente / Nº da fatura</label>
-        <input type="text" id="receber-form-descricao" placeholder="Ex: Fatura #2220 — Comércio Boa Vista Ltda.">
+        <label>Cliente (opcional)</label>
+        <select id="receber-form-parceiro">
+          <option value="">Nenhum / não cadastrado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Descrição / Nº da fatura</label>
+        <input type="text" id="receber-form-descricao" placeholder="Ex: Fatura #2220 — serviços prestados">
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -2296,6 +2390,7 @@ const screenTitles = {
   carteira: ['Carteira de Clientes', 'Visão consolidada de todas as empresas'],
   pagar: ['Contas a Pagar', 'Controle de obrigações e aprovações'],
   receber: ['Contas a Receber', 'Controle de faturamento e inadimplência'],
+  parceiros: ['Fornecedores/Clientes', 'Cadastro de fornecedores e clientes'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
@@ -2333,6 +2428,7 @@ function navigate(key) {
   if (key === 'carteira') carregarCarteira();
   if (key === 'pagar') carregarContasPagar();
   if (key === 'receber') carregarContasReceber();
+  if (key === 'parceiros') carregarParceiros();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
@@ -2997,6 +3093,8 @@ async function salvarNovoLancamento(tipo) {
   const observacoes = document.getElementById(`${prefixo}-form-observacoes`).value.trim() || null;
   const formaPagamentoEl = document.getElementById(`${prefixo}-form-forma`);
   const formaPagamento = formaPagamentoEl ? (formaPagamentoEl.value || null) : null;
+  const parceiroEl = document.getElementById(`${prefixo}-form-parceiro`);
+  const parceiroId = parceiroEl ? (parceiroEl.value || null) : null;
 
   if (!descricao || !valorStr || !vencimento) {
     showToast('Preencha descrição, valor e vencimento.', 'error');
@@ -3024,6 +3122,7 @@ async function salvarNovoLancamento(tipo) {
     categoria: categoria,
     observacoes: observacoes,
     forma_pagamento: formaPagamento,
+    parceiro_id: parceiroId,
     criado_por: currentUser.id
   }).select().single();
 
@@ -3050,6 +3149,7 @@ async function salvarNovoLancamento(tipo) {
   document.getElementById(`${prefixo}-form-categoria`).value = '';
   document.getElementById(`${prefixo}-form-observacoes`).value = '';
   if (formaPagamentoEl) formaPagamentoEl.value = '';
+  if (parceiroEl) parceiroEl.value = '';
 
   closeModal(`modal-${prefixo}`);
   showToast(`Lançamento a ${tipo === 'pagar' ? 'pagar' : 'receber'} criado com sucesso!${avisoAnexos}`, avisoAnexos ? 'error' : 'success');
@@ -3956,6 +4056,188 @@ function marcarComoPago(lancamentoId) {
 // Mesma lógica, para o lado de Contas a Receber
 function marcarComoRecebido(lancamentoId) {
   abrirModalDataPagamento(lancamentoId, 'recebido', 'Data em que o valor foi recebido', 'receber');
+}
+
+// ============================================
+// FORNECEDORES/CLIENTES (parceiros)
+// ============================================
+let ultimosParceirosCarregados = [];
+
+const TIPO_PARCEIRO_LABEL = { fornecedor: 'Fornecedor', cliente: 'Cliente', ambos: 'Fornecedor e Cliente' };
+
+async function carregarParceiros() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#parceiros-table tbody');
+  if (!empresaId) return;
+
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data, error } = await sb.from('parceiros').select('*').eq('empresa_id', empresaId).order('nome');
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  ultimosParceirosCarregados = data;
+  document.getElementById('parceiros-subtitle').textContent = `${data.length} cadastro(s)`;
+  renderizarParceiros(data);
+}
+
+function renderizarParceiros(lista) {
+  const tbody = document.querySelector('#parceiros-table tbody');
+
+  tbody.innerHTML = lista.length
+    ? lista.map(p => `
+        <tr data-tipo="${p.tipo}">
+          <td>${p.nome}</td>
+          <td>${p.documento || '—'}</td>
+          <td>${TIPO_PARCEIRO_LABEL[p.tipo] || p.tipo}</td>
+          <td>${p.email || p.telefone || '—'}</td>
+          <td><span class="status-pill ${p.ativo ? 'status-pago' : 'status-atrasado'}">${p.ativo ? 'Ativo' : 'Inativo'}</span></td>
+          <td>
+            <div style="display:flex;gap:5px">
+              <button class="action-btn view can-create" onclick="abrirFormEdicaoParceiro('${p.id}')">Editar</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirParceiro('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Excluir</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhum cadastro encontrado</td></tr>';
+
+  if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+function filtrarParceiros(tipo, chip) {
+  document.querySelectorAll('[data-filter-group="parceiros"]').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  const lista = tipo === 'todos' ? ultimosParceirosCarregados : ultimosParceirosCarregados.filter(p => p.tipo === tipo || p.tipo === 'ambos');
+  renderizarParceiros(lista);
+}
+
+function buscarParceiros(termo) {
+  const termoLower = termo.toLowerCase();
+  renderizarParceiros(ultimosParceirosCarregados.filter(p => p.nome.toLowerCase().includes(termoLower)));
+}
+
+function abrirFormNovoParceiro() {
+  document.getElementById('parceiro-form-id').value = '';
+  document.getElementById('parceiro-form-titulo').textContent = 'Cadastrar fornecedor/cliente';
+  document.getElementById('parceiro-form-nome').value = '';
+  document.getElementById('parceiro-form-documento').value = '';
+  document.getElementById('parceiro-form-tipo').value = 'ambos';
+  document.getElementById('parceiro-form-email').value = '';
+  document.getElementById('parceiro-form-telefone').value = '';
+  document.getElementById('form-novo-parceiro').style.display = 'block';
+}
+
+function abrirFormEdicaoParceiro(id) {
+  const p = ultimosParceirosCarregados.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('parceiro-form-id').value = p.id;
+  document.getElementById('parceiro-form-titulo').textContent = `Editando: ${p.nome}`;
+  document.getElementById('parceiro-form-nome').value = p.nome;
+  document.getElementById('parceiro-form-documento').value = p.documento || '';
+  document.getElementById('parceiro-form-tipo').value = p.tipo;
+  document.getElementById('parceiro-form-email').value = p.email || '';
+  document.getElementById('parceiro-form-telefone').value = p.telefone || '';
+  document.getElementById('form-novo-parceiro').style.display = 'block';
+  document.getElementById('form-novo-parceiro').scrollIntoView({ behavior: 'smooth' });
+}
+
+function fecharFormNovoParceiro() {
+  document.getElementById('form-novo-parceiro').style.display = 'none';
+}
+
+async function salvarParceiro() {
+  const id = document.getElementById('parceiro-form-id').value;
+  const nome = document.getElementById('parceiro-form-nome').value.trim();
+  const documento = document.getElementById('parceiro-form-documento').value.trim() || null;
+  const tipo = document.getElementById('parceiro-form-tipo').value;
+  const email = document.getElementById('parceiro-form-email').value.trim() || null;
+  const telefone = document.getElementById('parceiro-form-telefone').value.trim() || null;
+
+  if (!nome) {
+    showToast('Informe o nome.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  const dados = { empresa_id: empresaId, nome, documento, tipo, email, telefone };
+
+  const { error } = id
+    ? await sb.from('parceiros').update(dados).eq('id', id)
+    : await sb.from('parceiros').insert(dados);
+
+  if (error) {
+    showToast('Erro ao salvar: ' + error.message, 'error');
+    return;
+  }
+
+  showToast(id ? 'Cadastro atualizado!' : 'Cadastro criado!', 'success');
+  fecharFormNovoParceiro();
+  carregarParceiros();
+}
+
+async function excluirParceiro(id, nome) {
+  if (!confirm(`Excluir "${nome}"? Lançamentos já vinculados a ele não serão afetados.`)) return;
+
+  const { error } = await sb.from('parceiros').delete().eq('id', id);
+  if (error) {
+    showToast('Erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Excluído com sucesso!', 'success');
+  carregarParceiros();
+}
+
+function exportarParceiros() {
+  if (!ultimosParceirosCarregados.length) {
+    showToast('Nada para exportar.', 'error');
+    return;
+  }
+
+  const linhas = ultimosParceirosCarregados.map(p => [
+    p.nome, p.documento || '', TIPO_PARCEIRO_LABEL[p.tipo] || p.tipo, p.email || '', p.telefone || '', p.ativo ? 'Ativo' : 'Inativo'
+  ]);
+
+  exportarCSV(
+    `fornecedores_clientes_${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Nome', 'CNPJ/CPF', 'Tipo', 'E-mail', 'Telefone', 'Status'],
+    linhas
+  );
+  showToast('Exportado com sucesso!', 'success');
+}
+
+// Popula os seletores de fornecedor/cliente dentro dos modais de novo
+// lançamento, filtrando pelo tipo compatível (pagar->fornecedor, receber->cliente)
+async function popularSeletorParceiros(tipoLancamento) {
+  const empresaId = empresaAtualId();
+  const selId = tipoLancamento === 'pagar' ? 'pagar-form-parceiro' : 'receber-form-parceiro';
+  const sel = document.getElementById(selId);
+  if (!empresaId || !sel) return;
+
+  const tipoFiltro = tipoLancamento === 'pagar' ? 'fornecedor' : 'cliente';
+
+  const { data, error } = await sb
+    .from('parceiros')
+    .select('id, nome, tipo')
+    .eq('empresa_id', empresaId)
+    .eq('ativo', true)
+    .or(`tipo.eq.${tipoFiltro},tipo.eq.ambos`)
+    .order('nome');
+
+  if (error) return;
+
+  sel.innerHTML = '<option value="">Nenhum / não cadastrado</option>' +
+    data.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+}
+
+function abrirModalNovoLancamento(tipo) {
+  popularSeletorParceiros(tipo);
+  openModal(`modal-${tipo}`);
 }
 
 // ============================================
