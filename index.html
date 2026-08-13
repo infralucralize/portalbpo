@@ -1197,9 +1197,7 @@
     <div class="empresa-select">
       <label>Empresa selecionada</label>
       <select id="empresa-select" onchange="changeEmpresa(this.value)">
-        <option value="1">Santana Indústrias Ltda.</option>
-        <option value="2">Pro Fitness (Grupo Winner)</option>
-        <option value="3">PRIS Software S.A.</option>
+        <option value="">Carregando...</option>
       </select>
     </div>
 
@@ -2112,26 +2110,7 @@
                   </tr>
                 </thead>
                 <tbody id="fluxo-entradas-tbody">
-                  <tr>
-                    <td>Fatura #2211 — Grupo Nova Era</td>
-                    <td>29/08</td>
-                    <td><span class="amount positive">R$ 21.300,00</span></td>
-                  </tr>
-                  <tr>
-                    <td>Fatura #2207 — Boa Vista</td>
-                    <td>24/08</td>
-                    <td><span class="amount positive">R$ 12.900,00</span></td>
-                  </tr>
-                  <tr>
-                    <td>Contrato mensal recorrente</td>
-                    <td>05/09</td>
-                    <td><span class="amount positive">R$ 18.000,00</span></td>
-                  </tr>
-                  <tr>
-                    <td>Fatura #2215 — Construtora Beta</td>
-                    <td>15/09</td>
-                    <td><span class="amount positive">R$ 31.500,00</span></td>
-                  </tr>
+                  <tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Carregando...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2151,26 +2130,7 @@
                   </tr>
                 </thead>
                 <tbody id="fluxo-saidas-tbody">
-                  <tr>
-                    <td>Aluguel sede</td>
-                    <td>25/08</td>
-                    <td><span class="amount negative">R$ 14.500,00</span></td>
-                  </tr>
-                  <tr>
-                    <td>Folha de pagamento</td>
-                    <td>05/09</td>
-                    <td><span class="amount negative">R$ 62.000,00</span></td>
-                  </tr>
-                  <tr>
-                    <td>Juros de empréstimo</td>
-                    <td>30/08</td>
-                    <td><span class="amount negative">R$ 5.720,00</span></td>
-                  </tr>
-                  <tr>
-                    <td>Licença software TechSoft</td>
-                    <td>18/08</td>
-                    <td><span class="amount negative">R$ 3.960,00</span></td>
-                  </tr>
+                  <tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Carregando...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2791,7 +2751,7 @@ async function renderizarAppLogado() {
     sel.disabled = true;
   } else {
     sel.innerHTML = user.empresasDisponiveis
-      .map(e => `<option value="${e.id}">${e.nome}</option>`)
+      .map(e => `<option value="${e.id}">${esc(e.nome)}</option>`)
       .join('');
     sel.disabled = false;
   }
@@ -2868,6 +2828,7 @@ const screenTitles = {
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
   usuarios: ['Usuários', 'Gestão de acessos e permissões'],
+  auditoria: ['Auditoria', 'Histórico de alterações no sistema'],
 };
 
 const MESES_PT = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -2939,6 +2900,22 @@ const statusLabelMap = {
   cancelado: 'Cancelado',
 };
 
+// ============================================
+// SEGURANÇA: escapa HTML antes de injetar dados de usuário
+// via innerHTML. Sem isso, alguém poderia cadastrar um lançamento
+// com nome tipo <img src=x onerror="..."> e executar código
+// no navegador de todos que abrirem aquela empresa (XSS).
+// ============================================
+function esc(valor) {
+  if (valor === null || valor === undefined) return '';
+  return String(valor)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function formatarMoeda(valor) {
   return 'R$ ' + Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -2982,12 +2959,12 @@ async function carregarContasPagar() {
       return `
         <tr data-status="${l.status}" data-id="${l.id}">
           <td>
-            <div class="td-main">${nomeParceiro || l.descricao}</div>
-            <div class="td-sub">${nomeParceiro ? l.descricao : (l.observacoes || '')}</div>
+            <div class="td-main">${esc(nomeParceiro || l.descricao)}</div>
+            <div class="td-sub">${esc(nomeParceiro ? l.descricao : (l.observacoes || ''))}</div>
           </td>
-          <td>${l.categoria || '—'}</td>
+          <td>${esc(l.categoria || '—')}</td>
           <td>${formatarData(l.vencimento)}</td>
-          <td>${l.forma_pagamento || '—'}</td>
+          <td>${esc(l.forma_pagamento || '—')}</td>
           <td><span class="amount">${formatarMoeda(l.valor)}</span></td>
           <td><span class="status-pill status-${l.status}">${statusLabelMap[l.status] || l.status}</span></td>
           <td>
@@ -2995,7 +2972,7 @@ async function carregarContasPagar() {
               ${podeAprovar ? `<button class="action-btn approve can-approve" onclick="aprovarLancamento('${l.id}')">✓ Aprovar</button>` : ''}
               ${podePagar ? `<button class="action-btn approve can-approve" onclick="marcarComoPago('${l.id}')">✓ Marcar como pago</button>` : ''}
               <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'pagar')">Ver</button>
-              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', '${l.descricao.replace(/'/g, "\\'")}', 'pagar')">Excluir</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', 'pagar')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -3057,8 +3034,8 @@ async function carregarContasReceber() {
       return `
         <tr data-status="${l.status}" data-id="${l.id}">
           <td>
-            <div class="td-main">${l.parceiros?.nome || l.descricao}</div>
-            <div class="td-sub">${l.parceiros?.nome ? l.descricao : (l.observacoes || '')}</div>
+            <div class="td-main">${esc(l.parceiros?.nome || l.descricao)}</div>
+            <div class="td-sub">${esc(l.parceiros?.nome ? l.descricao : (l.observacoes || ''))}</div>
           </td>
           <td>${formatarData(l.vencimento)}</td>
           <td>${diasCol}</td>
@@ -3068,7 +3045,7 @@ async function carregarContasReceber() {
             <div style="display:flex;gap:5px">
               ${podeReceber ? `<button class="action-btn approve can-approve" onclick="marcarComoRecebido('${l.id}')">✓ Marcar como recebido</button>` : ''}
               <button class="action-btn view" onclick="abrirDetalheLancamento('${l.id}', 'receber')">Ver</button>
-              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', '${l.descricao.replace(/'/g, "\\'")}', 'receber')">Excluir</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="confirmarExclusaoLancamento('${l.id}', 'receber')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -3327,7 +3304,7 @@ async function carregarDRE() {
   const despesasPorCategoria = agruparPorCategoria(despesas, totalDespesas);
 
   const renderTabela = (grupos) => grupos.length
-    ? grupos.map(g => `<tr><td>${g.nome}</td><td>${formatarMoeda(g.valor)}</td><td>${g.pct.toFixed(1)}%</td></tr>`).join('')
+    ? grupos.map(g => `<tr><td>${esc(g.nome)}</td><td>${formatarMoeda(g.valor)}</td><td>${g.pct.toFixed(1)}%</td></tr>`).join('')
     : '<tr><td colspan="3" style="text-align:center;padding:16px;color:#94A3B8">Nenhum lançamento no período</td></tr>';
 
   document.querySelector('#dre-receitas-table tbody').innerHTML = renderTabela(receitasPorCategoria);
@@ -3424,7 +3401,7 @@ async function carregarFluxoCaixa(dias) {
   entradasTbody.innerHTML = entradasPrevistas.length
     ? entradasPrevistas.map(l => `
         <tr>
-          <td>${l.descricao}</td>
+          <td>${esc(l.descricao)}</td>
           <td>${formatarData(l.vencimento).slice(0, 5)}</td>
           <td><span class="amount positive">${formatarMoeda(l.valor)}</span></td>
         </tr>
@@ -3435,7 +3412,7 @@ async function carregarFluxoCaixa(dias) {
   saidasTbody.innerHTML = saidasPrevistas.length
     ? saidasPrevistas.map(l => `
         <tr>
-          <td>${l.descricao}</td>
+          <td>${esc(l.descricao)}</td>
           <td>${formatarData(l.vencimento).slice(0, 5)}</td>
           <td><span class="amount negative">${formatarMoeda(l.valor)}</span></td>
         </tr>
@@ -3474,7 +3451,7 @@ async function carregarContasBancariasSelect() {
     return;
   }
 
-  sel.innerHTML = contas.map(c => `<option value="${c.id}">${c.banco} — ${c.tipo_conta}${c.numero_conta ? ' · ' + c.numero_conta : ''}</option>`).join('');
+  sel.innerHTML = contas.map(c => `<option value="${c.id}">${esc(c.banco)} — ${esc(c.tipo_conta)}${c.numero_conta ? ' · ' + esc(c.numero_conta) : ''}</option>`).join('');
 
   // Mantém a conta já selecionada se ainda existir na lista, senão pega a primeira
   if (!contaBancariaAtualId || !contas.find(c => c.id === contaBancariaAtualId)) {
@@ -3609,7 +3586,7 @@ async function carregarConciliacao() {
       return `
         <div class="conc-item pending">
           <div class="conc-main">
-            <div class="conc-desc">${item.descricao_extrato}</div>
+            <div class="conc-desc">${esc(item.descricao_extrato)}</div>
             <div class="conc-meta">${dataFmt} · aguardando conciliação</div>
           </div>
           <div class="conc-right">
@@ -3624,7 +3601,7 @@ async function carregarConciliacao() {
     return `
       <div class="conc-item matched">
         <div class="conc-main">
-          <div class="conc-desc">${item.descricao_extrato}</div>
+          <div class="conc-desc">${esc(item.descricao_extrato)}</div>
           <div class="conc-meta">${dataFmt} · conciliado</div>
         </div>
         <div class="conc-right">
@@ -3878,15 +3855,15 @@ async function carregarEmpresas() {
   tbody.innerHTML = empresas.length
     ? empresas.map(e => `
         <tr>
-          <td>${e.nome}</td>
-          <td>${e.cnpj}</td>
+          <td>${esc(e.nome)}</td>
+          <td>${esc(e.cnpj)}</td>
           <td>${REGIME_LABEL[e.regime_tributario] || '—'}</td>
           <td><span class="status-pill ${e.ativo ? 'status-pago' : 'status-atrasado'}">${e.ativo ? 'Ativa' : 'Inativa'}</span></td>
           <td>${formatarData(e.created_at.slice(0, 10))}</td>
           <td>
             <div style="display:flex;gap:5px">
               <button class="action-btn view" onclick="abrirFormEdicaoEmpresa('${e.id}')">Editar</button>
-              <button class="action-btn admin-only" style="color:var(--red);border-color:var(--red);display:none" onclick="confirmarExclusaoEmpresa('${e.id}', '${e.nome.replace(/'/g, "\\'")}')">Excluir</button>
+              <button class="action-btn admin-only" style="color:var(--red);border-color:var(--red);display:none" onclick="confirmarExclusaoEmpresa('${e.id}')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -3897,7 +3874,7 @@ async function carregarEmpresas() {
   const sel = document.getElementById('usuario-form-empresa');
   if (sel) {
     sel.innerHTML = '<option value="">Selecione uma empresa</option>' +
-      empresas.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+      empresas.map(e => `<option value="${e.id}">${esc(e.nome)}</option>`).join('');
   }
 
   if (currentUser) applyRolePermissions(currentUser.role);
@@ -3960,7 +3937,8 @@ async function salvarNovaEmpresa() {
 // ============================================
 // EXCLUSÃO DE EMPRESA (com backup automático em PDF)
 // ============================================
-function confirmarExclusaoEmpresa(id, nome) {
+function confirmarExclusaoEmpresa(id) {
+  const nome = ultimasEmpresasCarregadas.find(e => e.id === id)?.nome || 'esta empresa';
   const confirmado = confirm(
     `⚠️ ATENÇÃO: excluir "${nome}" é IRREVERSÍVEL.\n\n` +
     `Isso vai apagar permanentemente TODOS os dados dessa empresa: ` +
@@ -4142,14 +4120,14 @@ async function carregarUsuarios() {
   tbody.innerHTML = perfisData.length
     ? perfisData.map(p => `
         <tr>
-          <td>${p.nome}</td>
-          <td>${p.email}</td>
+          <td>${esc(p.nome)}</td>
+          <td>${esc(p.email)}</td>
           <td>${roleLabel(p.role)}</td>
-          <td>${p.empresas?.nome || '—'}</td>
+          <td>${esc(p.empresas?.nome || '—')}</td>
           <td>
             <div style="display:flex;gap:5px">
               <button class="action-btn view" onclick="abrirFormEdicaoUsuario('${p.id}')">Editar</button>
-              <button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirUsuario('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Excluir</button>
+              <button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirUsuario('${p.id}')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -4330,7 +4308,7 @@ function renderizarCarteira(linhas) {
 
         return `
           <tr>
-            <td><div class="td-main">${l.empresa.nome}</div><div class="td-sub">${l.empresa.cnpj}</div></td>
+            <td><div class="td-main">${esc(l.empresa.nome)}</div><div class="td-sub">${esc(l.empresa.cnpj)}</div></td>
             <td><span class="amount" style="color:${l.saldo >= 0 ? 'var(--green)' : 'var(--red)'}">${formatarMoeda(l.saldo)}</span></td>
             <td>${l.aguardando > 0 ? `<span class="status-pill status-aguardando_aprovacao">${l.aguardando}</span>` : '—'}</td>
             <td>${l.criticos > 0 ? `<span class="status-pill status-atrasado">${l.criticos}</span>` : '—'}</td>
@@ -4378,7 +4356,8 @@ function exportarCarteira() {
   showToast('Exportado com sucesso!', 'success');
 }
 
-async function excluirUsuario(userId, nome) {
+async function excluirUsuario(userId) {
+  const nome = ultimosUsuariosCarregados.find(u => u.id === userId)?.nome || 'este usuário';
   if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
 
   const resultado = await chamarAdminUserFunction({ action: 'delete', user_id: userId });
@@ -4514,10 +4493,10 @@ async function carregarAuditoria() {
     ? data.map(a => `
         <tr>
           <td>${new Date(a.created_at).toLocaleString('pt-BR')}</td>
-          <td>${a._empresaNome}</td>
+          <td>${esc(a._empresaNome)}</td>
           <td>${obterTabelaLabel(a)}</td>
           <td>${obterAcaoLabel(a)}</td>
-          <td>${a.perfis?.nome || 'Sistema (automático)'}</td>
+          <td>${esc(a.perfis?.nome || 'Sistema (automático)')}</td>
           <td><button class="action-btn view" onclick="verDetalheAuditoria('${a.id}')">Ver detalhes</button></td>
         </tr>
       `).join('')
@@ -4629,7 +4608,7 @@ async function carregarAnexosDoLancamento(lancamentoId) {
     return `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F0F2F3">
         <div style="font-size:13px">
-          <a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${a.nome_arquivo}</a>
+          <a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${esc(a.nome_arquivo)}</a>
           <div style="color:#94A3B8;font-size:11px">${formatarData(a.created_at.slice(0, 10))}</div>
         </div>
         ${podeExcluir ? `<button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirAnexo('${a.id}', '${a.storage_path}', '${lancamentoId}')">Excluir</button>` : ''}
@@ -4902,7 +4881,9 @@ function marcarComoRecebido(lancamentoId) {
 // não gera PDF separado — o log de Auditoria já guarda automaticamente
 // o registro completo (JSON) do lançamento excluído, incluindo quem
 // fez e quando, então o backup já existe por padrão.
-function confirmarExclusaoLancamento(id, descricao, tipo) {
+async function confirmarExclusaoLancamento(id, tipo) {
+  const { data: l } = await sb.from('lancamentos').select('descricao').eq('id', id).single();
+  const descricao = l?.descricao || 'este lançamento';
   const confirmado = confirm(
     `⚠️ Excluir "${descricao}"?\n\n` +
     `Essa ação não pode ser desfeita. O registro completo fica salvo ` +
@@ -4960,15 +4941,15 @@ function renderizarParceiros(lista) {
   tbody.innerHTML = lista.length
     ? lista.map(p => `
         <tr data-tipo="${p.tipo}">
-          <td>${p.nome}</td>
-          <td>${p.documento || '—'}</td>
+          <td>${esc(p.nome)}</td>
+          <td>${esc(p.documento || '—')}</td>
           <td>${TIPO_PARCEIRO_LABEL[p.tipo] || p.tipo}</td>
-          <td>${p.email || p.telefone || '—'}</td>
+          <td>${esc(p.email || p.telefone || '—')}</td>
           <td><span class="status-pill ${p.ativo ? 'status-pago' : 'status-atrasado'}">${p.ativo ? 'Ativo' : 'Inativo'}</span></td>
           <td>
             <div style="display:flex;gap:5px">
               <button class="action-btn view can-create" onclick="abrirFormEdicaoParceiro('${p.id}')">Editar</button>
-              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirParceiro('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Excluir</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirParceiro('${p.id}')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -5050,7 +5031,8 @@ async function salvarParceiro() {
   carregarParceiros();
 }
 
-async function excluirParceiro(id, nome) {
+async function excluirParceiro(id) {
+  const nome = ultimosParceirosCarregados.find(p => p.id === id)?.nome || 'este cadastro';
   if (!confirm(`Excluir "${nome}"? Lançamentos já vinculados a ele não serão afetados.`)) return;
 
   const { error } = await sb.from('parceiros').delete().eq('id', id);
@@ -5102,7 +5084,7 @@ async function popularSeletorParceiros(tipoLancamento) {
   if (error) return;
 
   sel.innerHTML = '<option value="">Nenhum / não cadastrado</option>' +
-    data.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    data.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
 }
 
 // ============================================
@@ -5130,7 +5112,7 @@ async function carregarRecorrencias() {
   tbody.innerHTML = data.length
     ? data.map(r => `
         <tr>
-          <td>${r.descricao}</td>
+          <td>${esc(r.descricao)}</td>
           <td>${r.tipo === 'pagar' ? 'A Pagar' : 'A Receber'}</td>
           <td>${formatarMoeda(r.valor)}</td>
           <td>Dia ${r.dia_vencimento}</td>
@@ -5139,7 +5121,7 @@ async function carregarRecorrencias() {
           <td>
             <div style="display:flex;gap:5px">
               <button class="action-btn view can-create" onclick="abrirFormEdicaoRecorrencia('${r.id}')">Editar</button>
-              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirRecorrencia('${r.id}', '${r.descricao.replace(/'/g, "\\'")}')">Excluir</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirRecorrencia('${r.id}')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -5155,11 +5137,11 @@ async function popularSeletoresRecorrencia() {
 
   const { data: categorias } = await sb.from('categorias').select('nome').eq('empresa_id', empresaId).eq('ativa', true).order('nome');
   document.getElementById('recorrencia-form-categoria').innerHTML =
-    '<option value="">Selecione</option>' + (categorias || []).map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+    '<option value="">Selecione</option>' + (categorias || []).map(c => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join('');
 
   const { data: parceiros } = await sb.from('parceiros').select('id, nome').eq('empresa_id', empresaId).eq('ativo', true).order('nome');
   document.getElementById('recorrencia-form-parceiro').innerHTML =
-    '<option value="">Nenhum</option>' + (parceiros || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    '<option value="">Nenhum</option>' + (parceiros || []).map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
 }
 
 async function abrirFormNovaRecorrencia() {
@@ -5247,7 +5229,8 @@ async function salvarRecorrencia() {
   carregarRecorrencias();
 }
 
-async function excluirRecorrencia(id, descricao) {
+async function excluirRecorrencia(id) {
+  const descricao = ultimasRecorrenciasCarregadas.find(r => r.id === id)?.descricao || 'esta recorrência';
   if (!confirm(`Excluir a recorrência "${descricao}"? Lançamentos já gerados por ela não serão apagados.`)) return;
 
   const { error } = await sb.from('recorrencias').delete().eq('id', id);
@@ -5296,14 +5279,14 @@ async function carregarPrazosFiscais() {
           : `${p.dia_vencimento}/${MESES_ABREV[p.mes_vencimento]} (anual)`;
         return `
           <tr>
-            <td>${p.nome}${p.observacoes ? `<div class="td-sub">${p.observacoes}</div>` : ''}</td>
+            <td>${esc(p.nome)}${p.observacoes ? `<div class="td-sub">${esc(p.observacoes)}</div>` : ''}</td>
             <td>${p.periodicidade === 'mensal' ? 'Mensal' : 'Anual'}</td>
             <td>${vencimentoTexto}</td>
             <td><span class="status-pill ${p.ativo ? 'status-pago' : 'status-atrasado'}">${p.ativo ? 'Ativo' : 'Pausado'}</span></td>
             <td>
               <div style="display:flex;gap:5px">
                 <button class="action-btn view can-create" onclick="abrirFormEdicaoPrazoFiscal('${p.id}')">Editar</button>
-                <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirPrazoFiscal('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Excluir</button>
+                <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirPrazoFiscal('${p.id}')">Excluir</button>
               </div>
             </td>
           </tr>
@@ -5386,7 +5369,8 @@ async function salvarPrazoFiscal() {
   carregarPrazosFiscais();
 }
 
-async function excluirPrazoFiscal(id, nome) {
+async function excluirPrazoFiscal(id) {
+  const nome = ultimosPrazosFiscaisCarregados.find(p => p.id === id)?.nome || 'este prazo';
   if (!confirm(`Excluir o prazo fiscal "${nome}"?`)) return;
 
   const { error } = await sb.from('prazos_fiscais').delete().eq('id', id);
@@ -5494,7 +5478,7 @@ async function buscarCategoriasDocumento() {
 function renderizarFiltrosDocumentos() {
   const container = document.getElementById('documentos-filtros');
   const chipsCategorias = categoriasDocumentoCarregadas.map(c =>
-    `<div class="filter-chip" data-filter-group="documentos" data-filter="${c.nome}" onclick="filtrarDocumentos('${c.nome}', this)">${c.nome}</div>`
+    `<div class="filter-chip" data-filter-group="documentos" data-filter="${c.nome}" onclick="filtrarDocumentos('${esc(c.nome)}', this)">${c.nome}</div>`
   ).join('');
 
   container.innerHTML = `<div class="filter-chip active" data-filter-group="documentos" data-filter="todos" onclick="filtrarDocumentos('todos', this)">Todos</div>${chipsCategorias}`;
@@ -5536,8 +5520,8 @@ function renderizarDocumentos(lista) {
         const podeExcluir = podeExcluirTudo || a.uploaded_by === currentUser?.id;
         return `
           <tr data-categoria="${a.categoria_documento || 'Outro'}">
-            <td><a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${a.nome_arquivo}</a></td>
-            <td>${a.categoria_documento || 'Outro'}</td>
+            <td><a href="#" onclick="baixarAnexo('${a.storage_path}'); return false;" style="color:var(--teal);font-weight:600">${esc(a.nome_arquivo)}</a></td>
+            <td>${esc(a.categoria_documento || 'Outro')}</td>
             <td>${formatarData(a.created_at.slice(0, 10))}</td>
             <td>${podeExcluir ? `<button class="action-btn" style="color:var(--red);border-color:var(--red)" onclick="excluirDocumentoGeral('${a.id}', '${a.storage_path}')">Excluir</button>` : '—'}</td>
           </tr>
@@ -5557,7 +5541,7 @@ async function abrirFormNovoDocumento() {
   const categorias = categoriasDocumentoCarregadas.length ? categoriasDocumentoCarregadas : await buscarCategoriasDocumento();
   const sel = document.getElementById('documento-form-categoria');
   sel.innerHTML = categorias.length
-    ? categorias.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('')
+    ? categorias.map(c => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join('')
     : '<option value="Outro">Outro</option>';
 
   document.getElementById('documento-form-arquivo').value = '';
@@ -5672,13 +5656,13 @@ async function carregarCategorias() {
   tbody.innerHTML = data.length
     ? data.map(c => `
         <tr>
-          <td>${c.nome}</td>
+          <td>${esc(c.nome)}</td>
           <td>${TIPO_CATEGORIA_LABEL[c.tipo] || c.tipo}</td>
           <td><span class="status-pill ${c.ativa ? 'status-pago' : 'status-atrasado'}">${c.ativa ? 'Ativa' : 'Inativa'}</span></td>
           <td>
             <div style="display:flex;gap:5px">
               <button class="action-btn view can-create" onclick="abrirFormEdicaoCategoria('${c.id}')">Editar</button>
-              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirCategoria('${c.id}', '${c.nome.replace(/'/g, "\\'")}')">Excluir</button>
+              <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirCategoria('${c.id}')">Excluir</button>
             </div>
           </td>
         </tr>
@@ -5739,7 +5723,8 @@ async function salvarCategoria() {
   carregarCategorias();
 }
 
-async function excluirCategoria(id, nome) {
+async function excluirCategoria(id) {
+  const nome = ultimasCategoriasCarregadas.find(c => c.id === id)?.nome || 'esta categoria';
   if (!confirm(`Excluir a categoria "${nome}"? Lançamentos que já usam esse texto não serão afetados.`)) return;
 
   const { error } = await sb.from('categorias').delete().eq('id', id);
@@ -5771,7 +5756,7 @@ async function popularSeletorCategorias(tipoLancamento) {
   if (error) return;
 
   sel.innerHTML = '<option value="">Selecione</option>' +
-    data.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+    data.map(c => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join('');
 }
 
 function abrirModalNovoLancamento(tipo) {
@@ -6018,8 +6003,8 @@ async function carregarNotificacoes() {
 
   lista.innerHTML = notificacoes.map(n => `
     <div class="notificacao-item ${n.lida ? '' : 'nao-lida'}" onclick="marcarNotificacaoComoLida('${n.id}', ${n.link_tela ? `'${n.link_tela}'` : 'null'})">
-      <div class="notificacao-titulo">${n.titulo}</div>
-      <div class="notificacao-mensagem">${n.mensagem}</div>
+      <div class="notificacao-titulo">${esc(n.titulo)}</div>
+      <div class="notificacao-mensagem">${esc(n.mensagem)}</div>
       <div class="notificacao-data">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
     </div>
   `).join('');
