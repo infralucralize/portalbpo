@@ -1234,6 +1234,10 @@
             <div class="nav-icon">🔁</div>
             Recorrências
           </div>
+          <div class="nav-item" data-screen="prazosfiscais">
+            <div class="nav-icon">📅</div>
+            Prazos Fiscais
+          </div>
           <div class="nav-item" data-screen="fluxo">
             <div class="nav-icon">∿</div>
             Fluxo de Caixa
@@ -1874,6 +1878,81 @@
         </div>
       </div>
 
+      <!-- ============ PRAZOS FISCAIS ============ -->
+      <div class="screen" id="screen-prazosfiscais">
+        <div class="toolbar">
+          <div>
+            <h2>Prazos Fiscais</h2>
+            <div class="subtitle" id="prazosfiscais-subtitle">Obrigações fiscais recorrentes (DAS, DCTF, etc.)</div>
+          </div>
+          <div class="toolbar-actions">
+            <button class="btn can-create" onclick="abrirFormNovoPrazoFiscal()">+ Novo prazo</button>
+          </div>
+        </div>
+
+        <div class="card" id="form-novo-prazofiscal" style="display:none">
+          <div class="card-header"><h3 id="prazofiscal-form-titulo">Novo prazo fiscal</h3></div>
+          <input type="hidden" id="prazofiscal-form-id" value="">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome</label>
+              <input type="text" id="prazofiscal-form-nome" placeholder="Ex: DAS, DCTF, DEFIS, ISS...">
+            </div>
+            <div class="form-group">
+              <label>Periodicidade</label>
+              <select id="prazofiscal-form-periodicidade" onchange="togglePeriodicidadeFiscal()">
+                <option value="mensal">Mensal</option>
+                <option value="anual">Anual</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Dia do vencimento</label>
+              <input type="number" id="prazofiscal-form-dia" placeholder="Ex: 20" min="1" max="31">
+            </div>
+            <div class="form-group" id="prazofiscal-form-mes-wrapper" style="display:none">
+              <label>Mês (só se anual)</label>
+              <select id="prazofiscal-form-mes">
+                <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+                <option value="3">Março</option><option value="4">Abril</option>
+                <option value="5">Maio</option><option value="6">Junho</option>
+                <option value="7">Julho</option><option value="8">Agosto</option>
+                <option value="9">Setembro</option><option value="10">Outubro</option>
+                <option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observações (opcional)</label>
+            <input type="text" id="prazofiscal-form-observacoes" placeholder="Ex: apurado sobre o faturamento do mês anterior">
+          </div>
+          <div class="modal-footer" style="padding:12px 0 0">
+            <button class="btn ghost" onclick="fecharFormNovoPrazoFiscal()">Cancelar</button>
+            <button class="btn" onclick="salvarPrazoFiscal()">Salvar</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrapper">
+            <table id="prazosfiscais-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Periodicidade</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- ============ FLUXO DE CAIXA ============ -->
       <div class="screen" id="screen-fluxo">
         <div class="toolbar">
@@ -2095,7 +2174,8 @@
         </div>
 
         <div class="card" id="form-nova-empresa" style="display:none">
-          <div class="card-header"><h3>Cadastrar nova empresa</h3></div>
+          <div class="card-header"><h3 id="empresa-form-titulo">Cadastrar nova empresa</h3></div>
+          <input type="hidden" id="empresa-form-id" value="">
           <div class="form-row">
             <div class="form-group">
               <label>Nome da empresa</label>
@@ -2106,9 +2186,18 @@
               <input type="text" id="empresa-form-cnpj" placeholder="00.000.000/0001-00">
             </div>
           </div>
+          <div class="form-group">
+            <label>Regime tributário (opcional)</label>
+            <select id="empresa-form-regime">
+              <option value="">Não informado</option>
+              <option value="simples_nacional">Simples Nacional</option>
+              <option value="lucro_presumido">Lucro Presumido</option>
+              <option value="lucro_real">Lucro Real</option>
+            </select>
+          </div>
           <div class="modal-footer" style="padding:12px 0 0">
             <button class="btn ghost" onclick="fecharFormNovaEmpresa()">Cancelar</button>
-            <button class="btn" onclick="salvarNovaEmpresa()">Salvar empresa</button>
+            <button class="btn" id="empresa-form-btn-salvar" onclick="salvarNovaEmpresa()">Salvar empresa</button>
           </div>
         </div>
 
@@ -2119,12 +2208,14 @@
                 <tr>
                   <th>Nome</th>
                   <th>CNPJ</th>
+                  <th>Regime tributário</th>
                   <th>Status</th>
                   <th>Cadastrada em</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>
               </tbody>
             </table>
           </div>
@@ -2614,6 +2705,7 @@ async function renderizarAppLogado() {
   // notificações/badges, senão a notificação do lançamento recém-criado
   // não aparece até a próxima verificação (30s depois)
   await gerarLancamentosRecorrentesPendentes();
+  await gerarAlertasFiscaisPendentes();
   atualizarTodosBadges();
   carregarNotificacoes();
   iniciarPollingNotificacoes();
@@ -2670,6 +2762,7 @@ const screenTitles = {
   categorias: ['Categorias', 'Plano de contas da empresa'],
   documentos: ['Documentos', 'Guias, balanços, contratos e outros arquivos gerais'],
   recorrencias: ['Recorrências', 'Lançamentos que se repetem todo mês'],
+  prazosfiscais: ['Prazos Fiscais', 'Obrigações fiscais recorrentes (DAS, DCTF, etc.)'],
   fluxo: ['Fluxo de Caixa', 'Projeção realizado × previsto'],
   conciliacao: ['Conciliação Bancária', 'Extrato bancário × lançamentos internos'],
   empresas: ['Empresas', 'Gestão das empresas clientes'],
@@ -2720,6 +2813,7 @@ function navigate(key) {
   if (key === 'categorias') carregarCategorias();
   if (key === 'documentos') carregarDocumentosGerais();
   if (key === 'recorrencias') carregarRecorrencias();
+  if (key === 'prazosfiscais') carregarPrazosFiscais();
   if (key === 'fluxo') carregarFluxoCaixa();
   if (key === 'conciliacao') carregarConciliacao();
   if (key === 'empresas') carregarEmpresas();
@@ -3510,15 +3604,20 @@ async function uploadArquivosAnexo(fileList, lancamentoId, empresaId) {
 // ============================================
 let ultimosUsuariosCarregados = [];
 
+const REGIME_LABEL = { simples_nacional: 'Simples Nacional', lucro_presumido: 'Lucro Presumido', lucro_real: 'Lucro Real' };
+
+let ultimasEmpresasCarregadas = [];
+
 async function carregarEmpresas() {
   const tbody = document.querySelector('#empresas-table tbody');
   const { data: empresas, error } = await sb.from('empresas').select('*').order('nome');
 
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
     return;
   }
 
+  ultimasEmpresasCarregadas = empresas;
   document.getElementById('empresas-subtitle').textContent = `${empresas.length} empresa(s) cadastrada(s)`;
 
   tbody.innerHTML = empresas.length
@@ -3526,11 +3625,13 @@ async function carregarEmpresas() {
         <tr>
           <td>${e.nome}</td>
           <td>${e.cnpj}</td>
+          <td>${REGIME_LABEL[e.regime_tributario] || '—'}</td>
           <td><span class="status-pill ${e.ativo ? 'status-pago' : 'status-atrasado'}">${e.ativo ? 'Ativa' : 'Inativa'}</span></td>
           <td>${formatarData(e.created_at.slice(0, 10))}</td>
+          <td><button class="action-btn view" onclick="abrirFormEdicaoEmpresa('${e.id}')">Editar</button></td>
         </tr>
       `).join('')
-    : '<tr><td colspan="4" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:#94A3B8">Nenhuma empresa cadastrada</td></tr>';
 
   // Também alimenta o seletor de empresa do formulário de usuários
   const sel = document.getElementById('usuario-form-empresa');
@@ -3541,31 +3642,55 @@ async function carregarEmpresas() {
 }
 
 function abrirFormNovaEmpresa() {
-  document.getElementById('form-nova-empresa').style.display = 'block';
-}
-function fecharFormNovaEmpresa() {
-  document.getElementById('form-nova-empresa').style.display = 'none';
+  document.getElementById('empresa-form-id').value = '';
+  document.getElementById('empresa-form-titulo').textContent = 'Cadastrar nova empresa';
+  document.getElementById('empresa-form-btn-salvar').textContent = 'Salvar empresa';
   document.getElementById('empresa-form-nome').value = '';
   document.getElementById('empresa-form-cnpj').value = '';
+  document.getElementById('empresa-form-regime').value = '';
+  document.getElementById('form-nova-empresa').style.display = 'block';
+}
+
+function abrirFormEdicaoEmpresa(id) {
+  const e = ultimasEmpresasCarregadas.find(x => x.id === id);
+  if (!e) return;
+
+  document.getElementById('empresa-form-id').value = e.id;
+  document.getElementById('empresa-form-titulo').textContent = `Editando: ${e.nome}`;
+  document.getElementById('empresa-form-btn-salvar').textContent = 'Salvar alterações';
+  document.getElementById('empresa-form-nome').value = e.nome;
+  document.getElementById('empresa-form-cnpj').value = e.cnpj;
+  document.getElementById('empresa-form-regime').value = e.regime_tributario || '';
+  document.getElementById('form-nova-empresa').style.display = 'block';
+  document.getElementById('form-nova-empresa').scrollIntoView({ behavior: 'smooth' });
+}
+
+function fecharFormNovaEmpresa() {
+  document.getElementById('form-nova-empresa').style.display = 'none';
 }
 
 async function salvarNovaEmpresa() {
+  const id = document.getElementById('empresa-form-id').value;
   const nome = document.getElementById('empresa-form-nome').value.trim();
   const cnpj = document.getElementById('empresa-form-cnpj').value.trim();
+  const regime = document.getElementById('empresa-form-regime').value || null;
 
   if (!nome || !cnpj) {
     showToast('Preencha nome e CNPJ.', 'error');
     return;
   }
 
-  const { error } = await sb.from('empresas').insert({ nome, cnpj });
+  const dados = { nome, cnpj, regime_tributario: regime };
+  const { error } = id
+    ? await sb.from('empresas').update(dados).eq('id', id)
+    : await sb.from('empresas').insert(dados);
 
   if (error) {
-    showToast('Erro ao criar empresa: ' + error.message, 'error');
+    showToast('Erro ao salvar empresa: ' + error.message, 'error');
     return;
   }
 
-  showToast('Empresa criada com sucesso!', 'success');
+  showToast(id ? 'Empresa atualizada com sucesso!' : 'Empresa criada com sucesso!', 'success');
   fecharFormNovaEmpresa();
   carregarEmpresas();
 }
@@ -4684,6 +4809,154 @@ async function excluirRecorrencia(id, descricao) {
 }
 
 // ============================================
+// PRAZOS FISCAIS
+// ============================================
+let ultimosPrazosFiscaisCarregados = [];
+
+function togglePeriodicidadeFiscal() {
+  const periodicidade = document.getElementById('prazofiscal-form-periodicidade').value;
+  document.getElementById('prazofiscal-form-mes-wrapper').style.display = periodicidade === 'anual' ? 'block' : 'none';
+}
+
+async function carregarPrazosFiscais() {
+  const empresaId = empresaAtualId();
+  const tbody = document.querySelector('#prazosfiscais-table tbody');
+  if (!empresaId) return;
+
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Carregando...</td></tr>';
+
+  const { data, error } = await sb.from('prazos_fiscais').select('*').eq('empresa_id', empresaId).order('nome');
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red)">Erro: ${error.message}</td></tr>`;
+    return;
+  }
+
+  ultimosPrazosFiscaisCarregados = data;
+  document.getElementById('prazosfiscais-subtitle').textContent = `${data.length} prazo(s) cadastrado(s)`;
+
+  const MESES_ABREV = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+  tbody.innerHTML = data.length
+    ? data.map(p => {
+        const vencimentoTexto = p.periodicidade === 'mensal'
+          ? `Todo dia ${p.dia_vencimento}`
+          : `${p.dia_vencimento}/${MESES_ABREV[p.mes_vencimento]} (anual)`;
+        return `
+          <tr>
+            <td>${p.nome}${p.observacoes ? `<div class="td-sub">${p.observacoes}</div>` : ''}</td>
+            <td>${p.periodicidade === 'mensal' ? 'Mensal' : 'Anual'}</td>
+            <td>${vencimentoTexto}</td>
+            <td><span class="status-pill ${p.ativo ? 'status-pago' : 'status-atrasado'}">${p.ativo ? 'Ativo' : 'Pausado'}</span></td>
+            <td>
+              <div style="display:flex;gap:5px">
+                <button class="action-btn view can-create" onclick="abrirFormEdicaoPrazoFiscal('${p.id}')">Editar</button>
+                <button class="action-btn can-approve" style="color:var(--red);border-color:var(--red)" onclick="excluirPrazoFiscal('${p.id}', '${p.nome.replace(/'/g, "\\'")}')">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8">Nenhum prazo fiscal cadastrado</td></tr>';
+
+  if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+function abrirFormNovoPrazoFiscal() {
+  document.getElementById('prazofiscal-form-id').value = '';
+  document.getElementById('prazofiscal-form-titulo').textContent = 'Novo prazo fiscal';
+  document.getElementById('prazofiscal-form-nome').value = '';
+  document.getElementById('prazofiscal-form-periodicidade').value = 'mensal';
+  document.getElementById('prazofiscal-form-dia').value = '';
+  document.getElementById('prazofiscal-form-mes').value = '1';
+  document.getElementById('prazofiscal-form-observacoes').value = '';
+  togglePeriodicidadeFiscal();
+  document.getElementById('form-novo-prazofiscal').style.display = 'block';
+}
+
+function abrirFormEdicaoPrazoFiscal(id) {
+  const p = ultimosPrazosFiscaisCarregados.find(x => x.id === id);
+  if (!p) return;
+
+  document.getElementById('prazofiscal-form-id').value = p.id;
+  document.getElementById('prazofiscal-form-titulo').textContent = `Editando: ${p.nome}`;
+  document.getElementById('prazofiscal-form-nome').value = p.nome;
+  document.getElementById('prazofiscal-form-periodicidade').value = p.periodicidade;
+  document.getElementById('prazofiscal-form-dia').value = p.dia_vencimento;
+  document.getElementById('prazofiscal-form-mes').value = p.mes_vencimento || '1';
+  document.getElementById('prazofiscal-form-observacoes').value = p.observacoes || '';
+  togglePeriodicidadeFiscal();
+  document.getElementById('form-novo-prazofiscal').style.display = 'block';
+  document.getElementById('form-novo-prazofiscal').scrollIntoView({ behavior: 'smooth' });
+}
+
+function fecharFormNovoPrazoFiscal() {
+  document.getElementById('form-novo-prazofiscal').style.display = 'none';
+}
+
+async function salvarPrazoFiscal() {
+  const id = document.getElementById('prazofiscal-form-id').value;
+  const nome = document.getElementById('prazofiscal-form-nome').value.trim();
+  const periodicidade = document.getElementById('prazofiscal-form-periodicidade').value;
+  const diaStr = document.getElementById('prazofiscal-form-dia').value;
+  const mes = periodicidade === 'anual' ? parseInt(document.getElementById('prazofiscal-form-mes').value) : null;
+  const observacoes = document.getElementById('prazofiscal-form-observacoes').value.trim() || null;
+
+  if (!nome || !diaStr) {
+    showToast('Preencha nome e dia do vencimento.', 'error');
+    return;
+  }
+
+  const dia = parseInt(diaStr);
+  if (isNaN(dia) || dia < 1 || dia > 31) {
+    showToast('Dia do vencimento inválido.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+  const dados = { empresa_id: empresaId, nome, periodicidade, dia_vencimento: dia, mes_vencimento: mes, observacoes };
+
+  let erro;
+  if (id) {
+    ({ error: erro } = await sb.from('prazos_fiscais').update(dados).eq('id', id));
+  } else {
+    dados.criado_por = currentUser.id;
+    ({ error: erro } = await sb.from('prazos_fiscais').insert(dados));
+  }
+
+  if (erro) {
+    showToast('Erro ao salvar: ' + erro.message, 'error');
+    return;
+  }
+
+  showToast(id ? 'Prazo fiscal atualizado!' : 'Prazo fiscal criado!', 'success');
+  fecharFormNovoPrazoFiscal();
+  carregarPrazosFiscais();
+}
+
+async function excluirPrazoFiscal(id, nome) {
+  if (!confirm(`Excluir o prazo fiscal "${nome}"?`)) return;
+
+  const { error } = await sb.from('prazos_fiscais').delete().eq('id', id);
+  if (error) {
+    showToast('Erro ao excluir: ' + error.message, 'error');
+    return;
+  }
+
+  showToast('Prazo fiscal excluído!', 'success');
+  carregarPrazosFiscais();
+}
+
+// Gera alertas (notificação) quando um prazo fiscal está a até 5 dias
+// de vencer ou já venceu, e ainda não avisamos ninguém nesse período.
+// A lógica roda no banco (RPC), porque notificacoes não permite
+// INSERT direto do cliente por segurança.
+async function gerarAlertasFiscaisPendentes() {
+  const { error } = await sb.rpc('gerar_alertas_fiscais_pendentes');
+  if (error) console.error('Erro ao gerar alertas fiscais:', error.message);
+}
+
+// ============================================
 // GERAÇÃO AUTOMÁTICA (lazy): roda uma vez por login, checando
 // se alguma recorrência ainda não gerou o lançamento deste mês
 // ============================================
@@ -5221,6 +5494,7 @@ function changeEmpresa(val) {
   if (screenAtiva && screenAtiva.id === 'screen-categorias') carregarCategorias();
   if (screenAtiva && screenAtiva.id === 'screen-documentos') carregarDocumentosGerais();
   if (screenAtiva && screenAtiva.id === 'screen-recorrencias') carregarRecorrencias();
+  if (screenAtiva && screenAtiva.id === 'screen-prazosfiscais') carregarPrazosFiscais();
   atualizarTodosBadges();
 }
 
