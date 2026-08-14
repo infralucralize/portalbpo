@@ -2768,6 +2768,7 @@
             </select>
             <button class="btn ghost can-approve" onclick="abrirFormNovaContaBancaria()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Nova conta</button>
             <button class="btn ghost" onclick="carregarConciliacao()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-refresh"/></svg> Atualizar</button>
+            <button class="btn ghost can-approve" onclick="abrirImportarOfx()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg> Importar OFX</button>
             <button class="btn can-approve" onclick="abrirModalLancarExtrato()"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Lançar item</button>
           </div>
         </div>
@@ -3226,6 +3227,113 @@
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeModal('modal-lancar-extrato')">Cancelar</button>
       <button class="btn" onclick="salvarItemExtrato()">Lançar item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== MODAL: IMPORTAR EXTRATO OFX ====================== -->
+<div class="modal-overlay" id="modal-importar-ofx">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3>Importar extrato bancário (OFX)</h3>
+        <p>O sistema cruza automaticamente com os lançamentos existentes</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-importar-ofx')" aria-label="Fechar">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Arquivo OFX</label>
+        <input type="file" id="ofx-form-arquivo" accept=".ofx,.OFX">
+        <div class="field-hint">
+          Exportado do internet banking do seu banco (extensão .ofx). O sistema tenta
+          casar cada movimento com um lançamento existente por valor e data; o que não
+          encontrar correspondência fica pendente para você decidir.
+        </div>
+      </div>
+      <div id="ofx-preview" class="is-hidden" style="margin-top:var(--s3);padding:var(--s3);background:var(--surface-2);border-radius:var(--r-sm);font-size:13px;color:var(--text-muted)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-importar-ofx')">Cancelar</button>
+      <button class="btn" id="ofx-btn-importar" onclick="processarImportacaoOfx()">Importar e conciliar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== MODAL: VINCULAR A LANÇAMENTO EXISTENTE ====================== -->
+<div class="modal-overlay" id="modal-vincular-lancamento">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div>
+        <h3>Vincular a um lançamento</h3>
+        <p id="vincular-subtitulo"></p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-vincular-lancamento')" aria-label="Fechar">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Lançamento correspondente</label>
+        <select id="vincular-select"><option value="">Carregando...</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-vincular-lancamento')">Cancelar</button>
+      <button class="btn" onclick="confirmarVinculo()">Vincular e conciliar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== MODAL: CRIAR LANÇAMENTO A PARTIR DO EXTRATO ====================== -->
+<div class="modal-overlay" id="modal-criar-do-extrato">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h3>Criar lançamento</h3>
+        <p>Esse movimento não tinha um lançamento correspondente</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-criar-do-extrato')" aria-label="Fechar">
+        <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="criar-extrato-conciliacao-id" value="">
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="criar-extrato-tipo">
+          <option value="pagar">Contas a Pagar (saída)</option>
+          <option value="receber">Contas a Receber (entrada)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <input type="text" id="criar-extrato-descricao">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Valor (R$)</label>
+          <input type="number" id="criar-extrato-valor" step="0.01" min="0.01">
+        </div>
+        <div class="form-group">
+          <label>Data (já ocorrida no banco)</label>
+          <input type="date" id="criar-extrato-data">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Categoria (opcional)</label>
+        <select id="criar-extrato-categoria"><option value="">Selecione</option></select>
+      </div>
+      <div class="field-hint">
+        Esse lançamento já nasce com status "pago/recebido", já que o movimento já
+        aconteceu de fato no banco — e fica automaticamente conciliado com este item.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeModal('modal-criar-do-extrato')">Cancelar</button>
+      <button class="btn" onclick="salvarLancamentoDoExtrato()">Criar e conciliar</button>
     </div>
   </div>
 </div>
@@ -4458,7 +4566,9 @@ async function carregarConciliacao() {
           <div class="conc-right">
             <div class="conc-value ${classeValor}">${sinal} ${valorFmt}</div>
             <div class="conc-actions">
-              <button class="action-btn approve can-approve" onclick="conciliarItemReal('${item.id}')"><svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg> Conciliar</button>
+              <button class="action-btn can-approve" onclick="abrirVincularLancamento('${item.id}', ${item.valor}, '${item.data_movimento}')">Vincular</button>
+              <button class="action-btn can-approve" onclick="abrirCriarLancamentoDoExtrato('${item.id}', '${esc(item.descricao_extrato).replace(/'/g, "\\'")}', ${item.valor}, '${item.data_movimento}')">+ Criar lançamento</button>
+              <button class="action-btn approve can-approve" onclick="conciliarItemReal('${item.id}')"><svg class="icon icon-xs" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg> Marcar conciliado</button>
             </div>
           </div>
         </div>
@@ -4468,7 +4578,7 @@ async function carregarConciliacao() {
       <div class="conc-item matched">
         <div class="conc-main">
           <div class="conc-desc">${esc(item.descricao_extrato)}</div>
-          <div class="conc-meta">${dataFmt} · conciliado</div>
+          <div class="conc-meta">${dataFmt} · conciliado${item.lancamento_id ? ' automaticamente' : ''}</div>
         </div>
         <div class="conc-right">
           <div class="conc-value ${classeValor}">${sinal} ${valorFmt}</div>
@@ -4492,6 +4602,279 @@ async function carregarConciliacao() {
   container.innerHTML = html;
 
   if (currentUser) applyRolePermissions(currentUser.role);
+}
+
+// ============================================
+// IMPORTAÇÃO DE EXTRATO OFX + CONCILIAÇÃO AUTOMÁTICA
+// ============================================
+
+// Parser simples de OFX. Tolerante às duas variantes do formato:
+// OFX 1.x (SGML, sem fechamento de tag) e OFX 2.x (XML, com fechamento).
+// Cada transação vira { data, valor, descricao, fitid }.
+function parseOFX(texto) {
+  const blocos = texto.split(/<STMTTRN>/i).slice(1).map(b => b.split(/<\/STMTTRN>/i)[0]);
+  const pegar = (bloco, tag) => {
+    const m = bloco.match(new RegExp(`<${tag}>([^<\\r\\n]+)`, 'i'));
+    return m ? m[1].trim() : null;
+  };
+
+  const transacoes = [];
+  blocos.forEach(bloco => {
+    const dtposted = pegar(bloco, 'DTPOSTED');
+    const trnamt = pegar(bloco, 'TRNAMT');
+    if (!dtposted || trnamt === null) return;
+
+    const descricao = pegar(bloco, 'MEMO') || pegar(bloco, 'NAME') || 'Movimento bancário';
+    const fitid = pegar(bloco, 'FITID') || '';
+    const data = `${dtposted.slice(0, 4)}-${dtposted.slice(4, 6)}-${dtposted.slice(6, 8)}`;
+    const valor = parseFloat(trnamt.replace(',', '.'));
+
+    if (!isNaN(valor) && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
+      transacoes.push({ data, valor, descricao, fitid });
+    }
+  });
+  return transacoes;
+}
+
+function abrirImportarOfx() {
+  if (!contaBancariaAtualId) {
+    showToast('Cadastre e selecione uma conta bancária antes de importar.', 'error');
+    return;
+  }
+  document.getElementById('ofx-form-arquivo').value = '';
+  document.getElementById('ofx-preview').classList.add('is-hidden');
+  document.getElementById('ofx-btn-importar').classList.remove('is-loading');
+  openModal('modal-importar-ofx');
+}
+
+async function processarImportacaoOfx() {
+  const input = document.getElementById('ofx-form-arquivo');
+  const arquivo = input.files[0];
+  if (!arquivo) {
+    showToast('Selecione um arquivo OFX.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('ofx-btn-importar');
+  btn.classList.add('is-loading');
+
+  try {
+    const texto = await arquivo.text();
+    const transacoes = parseOFX(texto);
+
+    if (!transacoes.length) {
+      showToast('Nenhuma transação reconhecida nesse arquivo. Confirme se é um OFX válido.', 'error');
+      return;
+    }
+
+    const empresaId = empresaAtualId();
+
+    // Evita reimportar o mesmo movimento (mesma data + valor + descrição na mesma conta)
+    const { data: existentes } = await sb
+      .from('conciliacao_bancaria')
+      .select('data_movimento, valor, descricao_extrato')
+      .eq('conta_bancaria_id', contaBancariaAtualId);
+
+    const jaExiste = (t) => (existentes || []).some(e =>
+      e.data_movimento === t.data &&
+      Math.abs(Number(e.valor) - t.valor) < 0.01 &&
+      e.descricao_extrato === t.descricao
+    );
+
+    // Lançamentos ainda em aberto (candidatos ao cruzamento automático)
+    const { data: candidatos } = await sb
+      .from('lancamentos')
+      .select('id, tipo, valor, vencimento')
+      .eq('empresa_id', empresaId)
+      .in('status', ['aberto', 'atrasado', 'aguardando_aprovacao', 'inadimplente']);
+
+    const usados = new Set();
+    let importadas = 0, autoConciliadas = 0, duplicadas = 0;
+
+    for (const t of transacoes) {
+      if (jaExiste(t)) { duplicadas++; continue; }
+
+      const tipoEsperado = t.valor >= 0 ? 'receber' : 'pagar';
+      const candidatosValidos = (candidatos || []).filter(l =>
+        l.tipo === tipoEsperado &&
+        !usados.has(l.id) &&
+        Math.abs(Number(l.valor) - Math.abs(t.valor)) < 0.01 &&
+        Math.abs((new Date(l.vencimento) - new Date(t.data)) / 86400000) <= 5
+      );
+
+      // Só concilia automaticamente quando há exatamente 1 candidato — caso ambíguo
+      // (0 ou 2+ candidatos) fica pendente para decisão manual, como combinado.
+      let matchUnico = candidatosValidos.length === 1 ? candidatosValidos[0] : null;
+      if (matchUnico) usados.add(matchUnico.id);
+
+      const { error } = await sb.from('conciliacao_bancaria').insert({
+        empresa_id: empresaId,
+        conta_bancaria_id: contaBancariaAtualId,
+        descricao_extrato: t.descricao,
+        valor: t.valor,
+        data_movimento: t.data,
+        status: matchUnico ? 'conciliado' : 'pendente',
+        lancamento_id: matchUnico ? matchUnico.id : null,
+        conciliado_por: matchUnico ? currentUser.id : null,
+        conciliado_em: matchUnico ? new Date().toISOString() : null,
+      });
+
+      if (!error) {
+        importadas++;
+        if (matchUnico) {
+          autoConciliadas++;
+          // O movimento já ocorreu de fato no banco — atualiza o lançamento original
+          await sb.from('lancamentos').update({
+            status: matchUnico.tipo === 'pagar' ? 'pago' : 'recebido',
+            data_pagamento: t.data
+          }).eq('id', matchUnico.id);
+        }
+      }
+    }
+
+    closeModal('modal-importar-ofx');
+
+    const pendentes = importadas - autoConciliadas;
+    let msg = `${importadas} transação(ões) importada(s)`;
+    if (autoConciliadas) msg += `, ${autoConciliadas} conciliada(s) automaticamente`;
+    if (pendentes) msg += `, ${pendentes} pendente(s) de revisão`;
+    if (duplicadas) msg += `. ${duplicadas} já existente(s) foram ignoradas`;
+    showToast(msg + '.', importadas === 0 ? 'error' : 'success');
+
+    carregarConciliacao();
+  } finally {
+    btn.classList.remove('is-loading');
+  }
+}
+
+// ---------- Vincular manualmente a um lançamento existente ----------
+// Usado quando o cruzamento automático encontrou mais de um candidato
+// (ambíguo) e a pessoa precisa escolher qual é o correto.
+let vinculoContexto = null;
+
+async function abrirVincularLancamento(conciliacaoId, valor, dataMovimento) {
+  const empresaId = empresaAtualId();
+  const tipoEsperado = valor >= 0 ? 'receber' : 'pagar';
+
+  const { data: candidatos, error } = await sb
+    .from('lancamentos')
+    .select('id, descricao, valor, vencimento')
+    .eq('empresa_id', empresaId)
+    .eq('tipo', tipoEsperado)
+    .in('status', ['aberto', 'atrasado', 'aguardando_aprovacao', 'inadimplente'])
+    .order('vencimento');
+
+  if (error || !candidatos || !candidatos.length) {
+    showToast('Nenhum lançamento em aberto do tipo esperado para vincular. Considere criar um novo.', 'error');
+    return;
+  }
+
+  vinculoContexto = { conciliacaoId, tipoEsperado, dataMovimento };
+  document.getElementById('vincular-subtitulo').textContent =
+    `Movimento de ${formatarData(dataMovimento)} — ${formatarMoeda(Math.abs(valor))}`;
+
+  const sel = document.getElementById('vincular-select');
+  sel.innerHTML = candidatos.map(l =>
+    `<option value="${l.id}">${esc(l.descricao)} — ${formatarMoeda(l.valor)} — venc. ${formatarData(l.vencimento)}</option>`
+  ).join('');
+
+  openModal('modal-vincular-lancamento');
+}
+
+async function confirmarVinculo() {
+  if (!vinculoContexto) return;
+  const lancamentoId = document.getElementById('vincular-select').value;
+  if (!lancamentoId) return;
+
+  const { conciliacaoId, tipoEsperado, dataMovimento } = vinculoContexto;
+
+  await sb.from('lancamentos').update({
+    status: tipoEsperado === 'pagar' ? 'pago' : 'recebido',
+    data_pagamento: dataMovimento
+  }).eq('id', lancamentoId);
+
+  const { error } = await sb.from('conciliacao_bancaria').update({
+    status: 'conciliado',
+    lancamento_id: lancamentoId,
+    conciliado_por: currentUser.id,
+    conciliado_em: new Date().toISOString()
+  }).eq('id', conciliacaoId);
+
+  if (error) {
+    showToast('Erro ao vincular: ' + error.message, 'error');
+    return;
+  }
+
+  closeModal('modal-vincular-lancamento');
+  showToast('Vinculado e conciliado com sucesso!', 'success');
+  vinculoContexto = null;
+  carregarConciliacao();
+}
+
+// ---------- Criar lançamento a partir de um item sem correspondência ----------
+async function abrirCriarLancamentoDoExtrato(conciliacaoId, descricao, valor, dataMovimento) {
+  document.getElementById('criar-extrato-conciliacao-id').value = conciliacaoId;
+  document.getElementById('criar-extrato-tipo').value = valor >= 0 ? 'receber' : 'pagar';
+  document.getElementById('criar-extrato-descricao').value = descricao;
+  document.getElementById('criar-extrato-valor').value = Math.abs(valor).toFixed(2);
+  document.getElementById('criar-extrato-data').value = dataMovimento;
+
+  const empresaId = empresaAtualId();
+  const { data: categorias } = await sb.from('categorias').select('nome').eq('empresa_id', empresaId).eq('ativa', true).order('nome');
+  document.getElementById('criar-extrato-categoria').innerHTML =
+    '<option value="">Selecione</option>' + (categorias || []).map(c => `<option value="${esc(c.nome)}">${esc(c.nome)}</option>`).join('');
+
+  openModal('modal-criar-do-extrato');
+}
+
+async function salvarLancamentoDoExtrato() {
+  const conciliacaoId = document.getElementById('criar-extrato-conciliacao-id').value;
+  const tipo = document.getElementById('criar-extrato-tipo').value;
+  const descricao = document.getElementById('criar-extrato-descricao').value.trim();
+  const valor = parseFloat(document.getElementById('criar-extrato-valor').value);
+  const data = document.getElementById('criar-extrato-data').value;
+  const categoria = document.getElementById('criar-extrato-categoria').value || null;
+
+  if (!descricao || isNaN(valor) || valor <= 0 || !data) {
+    showToast('Preencha descrição, valor e data corretamente.', 'error');
+    return;
+  }
+
+  const empresaId = empresaAtualId();
+
+  // Nasce já como pago/recebido, com a data do banco — o movimento já é fato consumado
+  const { data: novoLancamento, error } = await sb.from('lancamentos').insert({
+    empresa_id: empresaId,
+    tipo, descricao, valor,
+    vencimento: data,
+    data_pagamento: data,
+    status: tipo === 'pagar' ? 'pago' : 'recebido',
+    categoria,
+    criado_por: currentUser.id
+  }).select().single();
+
+  if (error) {
+    showToast('Erro ao criar lançamento: ' + error.message, 'error');
+    return;
+  }
+
+  const { error: errConc } = await sb.from('conciliacao_bancaria').update({
+    status: 'conciliado',
+    lancamento_id: novoLancamento.id,
+    conciliado_por: currentUser.id,
+    conciliado_em: new Date().toISOString()
+  }).eq('id', conciliacaoId);
+
+  if (errConc) {
+    showToast('Lançamento criado, mas houve erro ao conciliar: ' + errConc.message, 'error');
+    closeModal('modal-criar-do-extrato');
+    carregarConciliacao();
+    return;
+  }
+
+  closeModal('modal-criar-do-extrato');
+  showToast('Lançamento criado e conciliado com sucesso!', 'success');
+  carregarConciliacao();
 }
 
 async function conciliarItemReal(itemId) {
